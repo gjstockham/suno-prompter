@@ -1,11 +1,9 @@
 """Chat agent implementation using Microsoft Agent Framework."""
 
 import asyncio
-import os
 from typing import Optional, List
 from agent_framework import ChatAgent as FrameworkChatAgent
 from agent_framework.azure import AzureOpenAIChatClient
-from azure.identity import AzureCliCredential
 from config import config
 from utils.logging import get_logger
 
@@ -68,26 +66,16 @@ Be conversational, creative, and helpful. Ask clarifying questions when needed t
         Raises:
             ValueError: If no valid configuration is available
         """
-        # Use Azure OpenAI if credentials are configured
-        if config.AZURE_OPENAI_ENDPOINT:
-            logger.info("Using Azure OpenAI chat client")
-            return AzureOpenAIChatClient(
-                endpoint=config.AZURE_OPENAI_ENDPOINT,
-                credential=AzureCliCredential(),
-                model=config.AZURE_OPENAI_MODEL_DEPLOYMENT or "gpt-4o-mini",
-            )
+        if not config.validate():
+            errors = config.get_validation_errors()
+            raise ValueError(f"Invalid configuration: {', '.join(errors)}")
 
-        # Use OpenAI if API key is configured
-        if config.OPENAI_API_KEY:
-            logger.info("Using OpenAI API key")
-            # For OpenAI with API key, use Azure OpenAI client with OpenAI endpoint
-            # or return a simple error for now
-            raise ValueError(
-                "Direct OpenAI API support requires additional setup. "
-                "Please use Azure OpenAI or OpenAI Assistants API."
-            )
-
-        raise ValueError("No valid API key or Azure configuration found")
+        logger.info("Using Azure OpenAI chat client with API key")
+        return AzureOpenAIChatClient(
+            endpoint=config.AZURE_OPENAI_ENDPOINT,
+            api_key=config.AZURE_OPENAI_API_KEY,
+            deployment_name=config.AZURE_OPENAI_DEPLOYMENT_NAME,
+        )
 
     def process_message(
         self, user_message: str, message_history: Optional[List] = None
