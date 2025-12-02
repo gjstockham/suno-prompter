@@ -1,7 +1,10 @@
-"""Chat agent implementation using Microsoft Agent Framework (autogen)."""
+"""Chat agent implementation using Microsoft Agent Framework."""
 
+import asyncio
 from typing import Optional, List
-import autogen
+from agent_framework import ChatAgent as FrameworkChatAgent
+from agent_framework.openai import OpenAIChatClient
+from agent_framework.azure import AzureOpenAIChatClient
 from config import config
 from utils.logging import get_logger
 
@@ -12,67 +15,21 @@ class ChatAgent:
     """
     Chat agent for processing user messages and generating responses.
 
-    Uses Microsoft autogen framework for multi-agent conversation.
+    Uses Microsoft Agent Framework for intelligent agent capabilities.
     """
 
     def __init__(self):
-        """Initialize the chat agent with LLM configuration."""
-        self.config_list = self._build_config_list()
-        self.user_proxy = None
-        self.assistant = None
-        self._setup_agents()
+        """Initialize the chat agent with appropriate chat client."""
+        self.agent = None
+        self.thread = None
+        self._setup_agent()
 
-    def _build_config_list(self) -> List:
-        """
-        Build the configuration list for autogen agents.
+    def _setup_agent(self):
+        """Set up the agent with configured chat client."""
+        try:
+            chat_client = self._create_chat_client()
 
-        Returns:
-            list: Configuration list for LLM endpoints
-        """
-        config_list = []
-
-        # Use OpenAI
-        if config.OPENAI_API_KEY:
-            config_list.append(
-                {
-                    "model": "gpt-4",
-                    "api_key": config.OPENAI_API_KEY,
-                }
-            )
-            logger.info("Using OpenAI API for agent")
-
-        # Use Azure OpenAI (if configured)
-        if config.AZURE_OPENAI_API_KEY and config.AZURE_OPENAI_ENDPOINT:
-            config_list.append(
-                {
-                    "model": config.AZURE_OPENAI_MODEL_DEPLOYMENT or "gpt-4",
-                    "api_key": config.AZURE_OPENAI_API_KEY,
-                    "base_url": config.AZURE_OPENAI_ENDPOINT,
-                    "api_type": "azure",
-                    "api_version": "2024-02-15-preview",
-                }
-            )
-            logger.info("Using Azure OpenAI API for agent")
-
-        if not config_list:
-            raise ValueError("No LLM configuration available")
-
-        return config_list
-
-    def _setup_agents(self):
-        """Set up autogen agents for conversation."""
-        # User proxy agent (simulates user)
-        self.user_proxy = autogen.UserProxyAgent(
-            name="user_proxy",
-            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith(
-                "TERMINATE"
-            ),
-            human_input_mode="NEVER",
-            code_execution_config={"use_docker": False},
-        )
-
-        # Assistant agent (responds to user)
-        system_prompt = """You are a helpful AI assistant for creating music prompts for Suno AI music generation.
+            system_prompt = """You are a helpful AI assistant for creating music prompts for Suno AI music generation.
 Your role is to help users craft detailed, creative prompts that will guide the AI music generator to produce specific musical styles, moods, and characteristics.
 
 When helping with prompts, consider:
@@ -85,13 +42,49 @@ When helping with prompts, consider:
 
 Be conversational, creative, and helpful. Ask clarifying questions when needed to better understand the user's vision."""
 
-        self.assistant = autogen.AssistantAgent(
-            name="music_prompt_assistant",
-            system_message=system_prompt,
-            llm_config={"config_list": self.config_list, "temperature": 0.7},
-        )
+            self.agent = FrameworkChatAgent(
+                chat_client=chat_client,
+                instructions=system_prompt,
+                name="SunoPromptAssistant",
+            )
 
-        logger.info("Chat agents initialized successfully")
+            # Create a new thread for conversation
+            self.thread = self.agent.get_new_thread()
+
+            logger.info("Chat agent initialized successfully")
+
+        except Exception as e:
+            logger.error(f"Error initializing chat agent: {e}")
+            raise
+
+    def _create_chat_client(self):
+        """
+        Create a chat client based on available configuration.
+
+        Returns:
+            ChatClient: Configured chat client instance
+
+        Raises:
+            ValueError: If no valid configuration is available
+        """
+        # Prefer Azure OpenAI if configured
+        if config.AZURE_OPENAI_API_KEY and config.AZURE_OPENAI_ENDPOINT:
+            logger.info("Using Azure OpenAI chat client")
+            return AzureOpenAIChatClient(
+                endpoint=config.AZURE_OPENAI_ENDPOINT,
+                api_key=config.AZURE_OPENAI_API_KEY,
+                model_id=config.AZURE_OPENAI_MODEL_DEPLOYMENT or "gpt-4o-mini",
+            )
+
+        # Fall back to OpenAI
+        if config.OPENAI_API_KEY:
+            logger.info("Using OpenAI chat client")
+            return OpenAIChatClient(
+                model_id="gpt-4o-mini",
+                api_key=config.OPENAI_API_KEY,
+            )
+
+        raise ValueError("No valid API key configuration found")
 
     def process_message(
         self, user_message: str, message_history: Optional[List] = None
@@ -110,20 +103,8 @@ Be conversational, creative, and helpful. Ask clarifying questions when needed t
             Exception: If message processing fails
         """
         try:
-            # Prepare conversation context if history provided
-            if message_history:
-                self._load_conversation_history(message_history)
-
-            # Initiate conversation
-            self.user_proxy.initiate_chat(
-                self.assistant,
-                message=user_message,
-                max_consecutive_auto_reply=1,
-            )
-
-            # Extract the last message from assistant
-            response = self._extract_assistant_response()
-
+            # Run the agent asynchronously and get the response
+            response = asyncio.run(self._run_agent_async(user_message))
             logger.info(f"Message processed: {user_message[:50]}...")
             return response
 
@@ -131,32 +112,36 @@ Be conversational, creative, and helpful. Ask clarifying questions when needed t
             logger.error(f"Error processing message: {e}")
             raise
 
-    def _load_conversation_history(self, message_history: List):
+    async def _run_agent_async(self, user_message: str) -> str:
         """
-        Load conversation history into agent context.
+        Run the agent asynchronously.
 
         Args:
-            message_history: List of previous messages
-        """
-        # For this MVP, we include history in the system prompt context
-        # In a more sophisticated implementation, this could update agent memory
-        if len(message_history) > 1:
-            logger.info(f"Loading {len(message_history)} messages from history")
-
-    def _extract_assistant_response(self) -> str:
-        """
-        Extract the assistant's last response from the conversation.
+            user_message: The message to process
 
         Returns:
-            str: The assistant's response text
+            str: The agent's response text
         """
-        # Get the last message from the conversation
-        if self.user_proxy.chat_messages:
-            messages = self.user_proxy.chat_messages.get(self.assistant, [])
-            if messages:
-                # Return the last assistant message
-                for msg in reversed(messages):
-                    if msg.get("role") == "assistant":
-                        return msg.get("content", "No response generated")
+        try:
+            response = await self.agent.run(user_message, thread=self.thread)
+            return response.text or "No response generated"
+        except Exception as e:
+            logger.error(f"Error running agent: {e}")
+            raise
 
-        return "I encountered an issue generating a response. Please try again."
+    def get_conversation_history(self) -> List:
+        """
+        Get the current conversation history.
+
+        Returns:
+            List: The conversation history from the thread
+        """
+        if self.thread:
+            return self.thread.messages if hasattr(self.thread, "messages") else []
+        return []
+
+    def clear_history(self):
+        """Clear the conversation history by creating a new thread."""
+        if self.agent:
+            self.thread = self.agent.get_new_thread()
+            logger.info("Conversation history cleared")
