@@ -6,9 +6,10 @@ A Streamlit application that leverages the Microsoft Agent Framework to generate
 
 - 🎵 AI-powered music prompt generation
 - 💬 Interactive chat interface with multi-turn conversations
-- 🤖 Microsoft Agent Framework integration for intelligent assistance
-- 🔧 Easy configuration via environment variables
-- 📝 Real-time conversation history
+- 🤖 Microsoft Agent Framework (agent-framework) for intelligent assistance
+- 🔧 Easy configuration via environment variables (OpenAI or Azure OpenAI)
+- 📝 Real-time conversation history with thread management
+- ⚡ Async/await patterns for responsive interactions
 
 ## Requirements
 
@@ -177,15 +178,20 @@ The application validates API configuration on startup. If configuration is inva
 
 ## Architecture
 
-### Agent Framework
+### Microsoft Agent Framework
 
-The application uses Microsoft's autogen framework for agent orchestration:
-- **User Proxy Agent**: Simulates user input and receives responses
-- **Assistant Agent**: Processes messages and generates music prompt suggestions
+The application uses Microsoft's official Agent Framework (`agent-framework`) for AI capabilities:
+- **ChatAgent**: The primary agent that handles conversations
+- **Chat Clients**: Supports OpenAI and Azure OpenAI backends
+- **Thread Management**: Maintains multi-turn conversation context
+- **Async Processing**: Built on async/await for responsive interactions
 
 ### Configuration Management
 
-`config.py` handles all environment variable loading and validation, with support for both OpenAI and Azure OpenAI.
+`config.py` handles all environment variable loading and validation:
+- OpenAI API key support
+- Azure OpenAI support (endpoint, API key, deployment name)
+- Application settings (debug mode, logging level)
 
 ### Streamlit UI
 
