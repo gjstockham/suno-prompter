@@ -39,18 +39,6 @@ A Streamlit application that leverages the Microsoft Agent Framework to generate
 - **Integration points:** Test interactions with Microsoft Agent Framework and Suno API (if applicable)
 - **Coverage goals:** Test happy paths for core agent workflows; skip edge cases unless discovered in development
 
-### Implementation Verification (AI Assistant Requirement)
-**Before marking any feature implementation as complete, AI assistants MUST:**
-1. Create a Python virtual environment
-2. Install all dependencies from requirements.txt
-3. Run syntax checks on all Python files
-4. Attempt to start the Streamlit app (`streamlit run app.py`)
-5. Verify the app starts without import errors or runtime exceptions
-6. Document any errors found and fix them
-7. Only mark implementation complete after successful verification
-
-This ensures code quality and catches integration issues before the user encounters them.
-
 ### Git Workflow
 - **Branching strategy:** Feature branches from `main`
 - **Branch naming:** `feature/description` or `fix/description` (kebab-case)
