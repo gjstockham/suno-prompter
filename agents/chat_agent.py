@@ -95,6 +95,8 @@ Be conversational, creative, and helpful. Ask clarifying questions when needed t
         """
         Process a user message and generate a response.
 
+        This method handles the asyncio event loop management for Streamlit compatibility.
+
         Args:
             user_message: The message from the user
             message_history: Optional conversation history (for context)
@@ -106,8 +108,22 @@ Be conversational, creative, and helpful. Ask clarifying questions when needed t
             Exception: If message processing fails
         """
         try:
-            # Run the agent asynchronously and get the response
-            response = asyncio.run(self._run_agent_async(user_message))
+            # Handle asyncio event loop for Streamlit compatibility
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            if loop.is_running():
+                # If loop is already running (in Streamlit), create a task
+                import nest_asyncio
+                nest_asyncio.apply()
+                response = loop.run_until_complete(self._run_agent_async(user_message))
+            else:
+                # Run normally if no loop is running
+                response = loop.run_until_complete(self._run_agent_async(user_message))
+
             logger.info(f"Message processed: {user_message[:50]}...")
             return response
 
