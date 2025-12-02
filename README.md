@@ -213,7 +213,62 @@ The Streamlit interface provides:
 
 ## Contributing
 
-See the OpenSpec documentation in `openspec/` for development guidelines and architectural patterns.
+This project uses **OpenSpec** for spec-driven development. Changes are planned, approved, then implemented.
+
+### OpenSpec Quick Guide
+
+OpenSpec follows a three-stage workflow:
+
+| Stage | What Happens | Claude Command |
+|-------|--------------|----------------|
+| **1. Propose** | Create a change proposal with specs | `/openspec:proposal` |
+| **2. Implement** | Build the approved change | `/openspec:apply` |
+| **3. Archive** | Archive after deployment | `/openspec:archive` |
+
+### When to Create a Proposal
+
+**Create a proposal for:**
+- New features or capabilities
+- Breaking changes (API, schema)
+- Architecture changes
+
+**Skip proposals for:**
+- Bug fixes, typos, comments
+- Dependency updates (non-breaking)
+- Config changes
+
+### Using the Slash Commands
+
+```
+# Start a new proposal (Claude will guide you through it)
+/openspec:proposal
+
+# Implement an approved proposal
+/openspec:apply
+
+# Archive after deployment
+/openspec:archive
+```
+
+### Key Directories
+
+```
+openspec/
+├── specs/      # Current truth (what IS built)
+├── changes/    # Proposals (what SHOULD change)
+└── project.md  # Project conventions
+```
+
+### CLI Commands (Manual)
+
+```bash
+openspec list              # List active changes
+openspec list --specs      # List specifications
+openspec validate --strict # Validate a change
+openspec archive <id>      # Archive after deployment
+```
+
+For full details, see `openspec/AGENTS.md`.
 
 ## License
 
