@@ -8,7 +8,7 @@ The system SHALL initialize a Streamlit web application on startup with configur
 
 #### Scenario: Successful startup with valid configuration
 - **WHEN** user runs `streamlit run app.py` with valid `.env` file
-- **THEN** the Streamlit server starts and displays the application interface
+- **THEN** the Streamlit server starts and displays the workflow interface
 - **AND** configuration is loaded without errors
 - **AND** the API key is validated as present (actual validation by agent at first interaction)
 
@@ -16,26 +16,6 @@ The system SHALL initialize a Streamlit web application on startup with configur
 - **WHEN** user runs `streamlit run app.py` without `.env` file or required variables
 - **THEN** the application displays a clear error message
 - **AND** the user is instructed to create `.env` with required variables
-
-### Requirement: Chat Interface
-The system SHALL provide a chat interface for users to interact with AI agents.
-
-#### Scenario: User submits a message
-- **WHEN** user types a message and submits it
-- **THEN** the message appears in the chat history
-- **AND** a loading indicator displays while the agent processes the request
-- **AND** the agent response appears in the chat history once complete
-
-#### Scenario: Conversation history display
-- **WHEN** user opens the application
-- **THEN** the chat interface displays all previous messages from the current session
-- **AND** messages are in chronological order (oldest first)
-- **AND** user messages and agent responses are visually distinguished
-
-#### Scenario: Chat clear on page refresh
-- **WHEN** user refreshes the page or restarts the app
-- **THEN** the conversation history is cleared (MVP behavior)
-- **AND** the user can start a new conversation
 
 ### Requirement: Agent Integration
 The system SHALL integrate with Microsoft Agent Framework to process user messages.
@@ -71,36 +51,23 @@ The system SHALL load configuration from environment variables and validate requ
 - **THEN** required environment variables (API keys, etc.) are checked
 - **AND** if any required variable is missing, a clear error message is displayed
 
-### Requirement: Session State Management
-The system SHALL maintain conversation history within a user session.
-
-#### Scenario: Session state persistence within a session
-- **WHEN** user sends multiple messages
-- **THEN** all messages and responses are stored in session state
-- **AND** the conversation is visible to the user throughout the session
-
-#### Scenario: Fresh session on app restart
-- **WHEN** the user restarts or refreshes the application
-- **THEN** a new empty session is created
-- **AND** previous conversation history is not retained (MVP scope)
-
 ### Requirement: User Experience
-The system SHALL provide a clear, functional chat interface with basic visual feedback.
+The system SHALL provide a clear workflow interface with input fields and visual feedback.
 
-#### Scenario: Visual distinction between user and agent messages
-- **WHEN** messages are displayed in the chat interface
-- **THEN** user messages are visually distinct from agent messages
-- **AND** it is clear who wrote each message
+#### Scenario: Workflow input form display
+- **WHEN** user views the application
+- **THEN** the interface shows Artist(s), Song(s), and Other guidance input fields
+- **AND** a Generate button is visible
+- **AND** the layout is clean and easy to understand
 
 #### Scenario: Responsive feedback during agent processing
-- **WHEN** the agent is processing a message
-- **THEN** a loading indicator is displayed
-- **AND** the user knows the system is working on their request
-- **AND** no new messages can be submitted until processing completes
+- **WHEN** the workflow is running
+- **THEN** a progress indicator is displayed
+- **AND** the user knows the system is processing
+- **AND** the Generate button is disabled until processing completes
 
-#### Scenario: Clear interface layout
-- **WHEN** user views the application
-- **THEN** the chat history is in the main area
-- **AND** the message input field is at the bottom
-- **AND** the layout is clean and easy to understand
+#### Scenario: Results display
+- **WHEN** the workflow completes successfully
+- **THEN** the lyric blueprint is displayed below the input form
+- **AND** the output is formatted as readable markdown
 
