@@ -146,19 +146,29 @@ class LyricWorkflow:
         """
         try:
             output = None
+            accumulated_text = []
 
             # Stream events from workflow execution
             async for event in self.workflow.run_stream(prompt):
                 if isinstance(event, AgentRunEvent):
                     # Agent has completed execution
                     output = event.data
-                    logger.debug(f"Agent {event.executor_id} output received")
+                    logger.info(f"AgentRunEvent received: {len(output) if output else 0} chars")
                 elif isinstance(event, AgentRunUpdateEvent):
-                    # Streaming token update (can accumulate if needed)
-                    logger.debug(f"Agent {event.executor_id} token: {event.data}")
+                    # Streaming token update - extract text from the response update
+                    if event.data and hasattr(event.data, 'text'):
+                        token = event.data.text
+                        accumulated_text.append(token)
+                        logger.debug(f"Token received: {token[:50] if token else 'empty'}")
                 elif isinstance(event, WorkflowFailedEvent):
                     raise Exception(f"Workflow failed: {event.details.message}")
 
+            # Use accumulated text if we didn't get AgentRunEvent
+            if not output and accumulated_text:
+                output = "".join(accumulated_text)
+                logger.info(f"Using accumulated streaming text: {len(output)} chars")
+
+            logger.info(f"Workflow completed. Output: {len(output) if output else 0} chars")
             return output or "No blueprint generated"
 
         except Exception as e:
