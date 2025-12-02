@@ -1,7 +1,7 @@
 """Configuration management for the Suno Prompter application."""
 
 import os
-from typing import Optional
+from typing import Optional, List
 from dotenv import load_dotenv
 
 
@@ -42,7 +42,7 @@ class Config:
         return True
 
     @classmethod
-    def get_validation_errors(cls) -> list[str]:
+    def get_validation_errors(cls) -> List[str]:
         """
         Get a list of validation errors.
 

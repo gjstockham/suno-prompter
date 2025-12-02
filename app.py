@@ -32,19 +32,19 @@ def validate_configuration():
     """Validate that the application configuration is correct."""
     if not config.validate():
         st.error("❌ Configuration Error")
-        st.error_details = """
-        The application requires API key configuration. Please:
+        error_message = """
+The application requires API key configuration. Please:
 
-        1. Copy `.env.example` to `.env`
-        2. Add your OpenAI API key to `.env`
-        3. Restart the application
+1. Copy `.env.example` to `.env`
+2. Add your OpenAI API key to `.env`
+3. Restart the application
 
-        For Azure OpenAI, set:
-        - AZURE_OPENAI_API_KEY
-        - AZURE_OPENAI_ENDPOINT
-        - AZURE_OPENAI_MODEL_DEPLOYMENT
+For Azure OpenAI, set:
+- AZURE_OPENAI_API_KEY
+- AZURE_OPENAI_ENDPOINT
+- AZURE_OPENAI_MODEL_DEPLOYMENT
         """
-        st.error(st.error_details)
+        st.error(error_message)
         st.stop()
 
 

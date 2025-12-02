@@ -1,6 +1,6 @@
 """Chat agent implementation using Microsoft Agent Framework (autogen)."""
 
-from typing import Optional
+from typing import Optional, List
 import autogen
 from config import config
 from utils.logging import get_logger
@@ -22,7 +22,7 @@ class ChatAgent:
         self.assistant = None
         self._setup_agents()
 
-    def _build_config_list(self) -> list:
+    def _build_config_list(self) -> List:
         """
         Build the configuration list for autogen agents.
 
@@ -94,7 +94,7 @@ Be conversational, creative, and helpful. Ask clarifying questions when needed t
         logger.info("Chat agents initialized successfully")
 
     def process_message(
-        self, user_message: str, message_history: Optional[list] = None
+        self, user_message: str, message_history: Optional[List] = None
     ) -> str:
         """
         Process a user message and generate a response.
@@ -131,7 +131,7 @@ Be conversational, creative, and helpful. Ask clarifying questions when needed t
             logger.error(f"Error processing message: {e}")
             raise
 
-    def _load_conversation_history(self, message_history: list):
+    def _load_conversation_history(self, message_history: List):
         """
         Load conversation history into agent context.
 
