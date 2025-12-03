@@ -4,11 +4,13 @@ A Streamlit application that leverages the Microsoft Agent Framework to generate
 
 ## Features
 
-- 🎵 AI-powered music prompt generation
-- 💬 Interactive chat interface with multi-turn conversations
+- 🎵 **Template Generation**: AI analyzes reference songs and artists to generate a detailed lyric blueprint
+- ✍️ **Lyrics Generation**: Creates original lyrics based on the template and your song idea
+- 👁️ **Lyrics Review**: Intelligent reviewer evaluates lyrics for style adherence and plagiarism concerns
+- 🔄 **Iterative Refinement**: Refine lyrics through multiple iterations with reviewer feedback (up to 3 revisions)
+- 💡 **Smart Ideas**: Choose your own song idea or get a random suggestion from starter ideas
 - 🤖 Microsoft Agent Framework (agent-framework) for intelligent assistance
 - 🔧 Easy configuration via environment variables (OpenAI or Azure OpenAI)
-- 📝 Real-time conversation history with thread management
 - ⚡ Async/await patterns for responsive interactions
 
 ## Requirements
@@ -73,16 +75,32 @@ streamlit run app.py
 
 The application will open in your default browser at `http://localhost:8501`
 
-### Using the Chat Interface
+### Workflow: Generate a Lyric Blueprint and Create Lyrics
 
-1. Type your message in the chat input field at the bottom
-2. Press Enter or click Submit
-3. The AI assistant will process your message and generate a response
-4. Continue the conversation to refine your music prompts
+1. **Enter Reference Information**
+   - Artist(s): Enter artists whose style you want to emulate
+   - Song(s): Enter specific songs to analyze
+   - Other guidance: Add any additional style preferences or requirements
 
-### Clear Conversation
+2. **Generate Blueprint** - Click "Generate Blueprint" to create a lyric template
 
-Use the "Clear Conversation" button in the sidebar to start a new conversation.
+3. **Select a Song Idea**
+   - Enter your own song idea/title, or
+   - Click "Surprise Me" for a random starter idea
+
+4. **Generate Lyrics** - Click "Generate Lyrics" to create original lyrics based on your template and idea
+
+5. **Review and Iterate**
+   - View the generated lyrics and reviewer feedback
+   - Feedback includes style adherence and plagiarism/cliché checks
+   - Click "Accept & Finalize" to accept the lyrics, or
+   - Click "Request Revision" to refine (up to 3 iterations)
+
+6. **Final Output** - View your final lyrics with optional revision history
+
+### Clear Workflow
+
+Use the "Clear Workflow" button in the sidebar to start a new session.
 
 ## Configuration
 
@@ -99,21 +117,30 @@ Use the "Clear Conversation" button in the sidebar to start a new conversation.
 
 ```
 suno-prompter/
-├── app.py                  # Main Streamlit application
-├── config.py              # Configuration management
-├── requirements.txt       # Python dependencies
-├── .env.example           # Example environment variables
-├── README.md              # This file
+├── app.py                           # Main Streamlit application
+├── config.py                        # Configuration management
+├── requirements.txt                 # Python dependencies
+├── .env.example                     # Example environment variables
+├── README.md                        # This file
 ├── agents/
 │   ├── __init__.py
-│   └── chat_agent.py      # Chat agent using Agent Framework
+│   ├── lyric_template_agent.py      # Generates lyric blueprints
+│   ├── lyric_writer_agent.py        # Generates lyrics from template + idea
+│   └── lyric_reviewer_agent.py      # Reviews lyrics for quality
+├── workflows/
+│   ├── __init__.py
+│   └── lyric_workflow.py            # Orchestrates template → writer → reviewer loop
 ├── utils/
 │   ├── __init__.py
-│   └── logging.py         # Logging utilities
+│   ├── logging.py                   # Logging utilities
+│   └── ideas.py                     # Starter idea selection
+├── data/
+│   └── starter_ideas.txt            # 10 song idea prompts
 └── openspec/
-    ├── project.md         # Project context and conventions
+    ├── project.md                   # Project context and conventions
     └── changes/
-        └── add-streamlit-agent-chat/  # Change proposal
+        ├── archive/                 # Archived proposals
+        └── generate-and-review-lyrics/  # Current proposal
 ```
 
 ## Development
@@ -201,15 +228,27 @@ The Streamlit interface provides:
 - Session state management
 - Real-time message rendering
 
-## Future Enhancements
+## Implementation Status
 
-- [ ] Conversation persistence (database storage)
-- [ ] Multiple conversation history
+### Completed
+- [x] Template generation from reference songs
+- [x] Lyric writer agent
+- [x] Lyric reviewer agent with plagiarism/cliché detection
+- [x] Iterative refinement loop (up to 3 revisions)
+- [x] Human-in-loop idea collection
+- [x] Random idea suggestion from starter ideas
+
+### Future Enhancements
+
+- [ ] Export/save generated lyrics to file
+- [ ] Session persistence (database storage)
+- [ ] Multiple session history
 - [ ] Prompt template library
-- [ ] Export/save generated prompts
 - [ ] Integration with Suno API for direct generation
 - [ ] User authentication and multi-user support
-- [ ] Advanced prompt analytics
+- [ ] Advanced analytics on lyrics quality and styles
+- [ ] Customizable iteration limits
+- [ ] Additional starter ideas source (API/database)
 
 ## Contributing
 
