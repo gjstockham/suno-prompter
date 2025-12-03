@@ -1,4 +1,7 @@
-"""Suno Producer Agent for generating Suno-compatible outputs from finalized lyrics."""
+"""Suno Producer Agent for generating Suno-compatible outputs from finalized lyrics.
+
+Meta-tag reference based on https://github.com/stayen/suno-reference
+"""
 
 from agent_framework import ChatAgent as FrameworkChatAgent
 from agents.factory import create_chat_client
