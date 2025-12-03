@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Optional, List
 
 from agent_framework import AgentRunEvent, AgentRunUpdateEvent, WorkflowFailedEvent
-from agents import create_lyric_template_agent, create_lyric_writer_agent, create_lyric_reviewer_agent
+from agents import create_lyric_template_agent, create_lyric_writer_agent, create_lyric_reviewer_agent, create_suno_producer_agent
 from agents.lyric_reviewer_agent import ReviewerFeedback
 from utils.logging import get_logger
 
@@ -42,6 +42,7 @@ class WorkflowInputs:
     songs: str = ""
     guidance: str = ""
     idea: str = ""  # Song idea or title
+    producer_guidance: str = ""  # Production style guidance for Suno output
 
 
 @dataclass
@@ -52,6 +53,7 @@ class WorkflowOutputs:
     idea: Optional[str] = None
     lyrics: Optional[str] = None
     feedback_history: List[FeedbackEntry] = field(default_factory=list)
+    suno_output: Optional[dict] = None  # Contains: style_prompt, lyric_sheet
 
 
 @dataclass
@@ -80,6 +82,7 @@ class LyricWorkflow:
             self.lyric_template_agent = create_lyric_template_agent()
             self.lyric_writer_agent = create_lyric_writer_agent()
             self.lyric_reviewer_agent = create_lyric_reviewer_agent()
+            self.suno_producer_agent = create_suno_producer_agent()
             logger.info("LyricWorkflow initialized with all agents")
         except Exception as e:
             logger.error(f"Error initializing LyricWorkflow: {e}")
@@ -280,3 +283,99 @@ class LyricWorkflow:
         if inputs.guidance.strip():
             parts.append(f"Additional guidance: {inputs.guidance.strip()}")
         return "\n".join(parts)
+
+    def run_producer(self, state: WorkflowState) -> WorkflowState:
+        """
+        Run the producer agent to generate Suno-compatible outputs.
+
+        Args:
+            state: Current workflow state with finalized lyrics
+
+        Returns:
+            Updated WorkflowState with suno_output populated
+        """
+        if state.status != WorkflowStatus.COMPLETE:
+            state.error = "Cannot run producer: lyrics must be finalized first"
+            logger.error(state.error)
+            return state
+
+        if not state.outputs.lyrics:
+            state.error = "Cannot run producer: no lyrics available"
+            logger.error(state.error)
+            return state
+
+        try:
+            logger.info("Running producer agent to generate Suno outputs...")
+
+            # Build prompt for producer
+            prompt_parts = [
+                "Finalized Lyrics:",
+                state.outputs.lyrics,
+                "",
+                "Style Template:",
+                state.outputs.template or "No template provided",
+            ]
+
+            if state.inputs.producer_guidance.strip():
+                prompt_parts.extend([
+                    "",
+                    "Production Guidance:",
+                    state.inputs.producer_guidance.strip()
+                ])
+
+            prompt = "\n".join(prompt_parts)
+
+            # Run producer agent
+            loop = self._get_event_loop()
+
+            if loop.is_running():
+                import nest_asyncio
+                nest_asyncio.apply()
+                producer_output = loop.run_until_complete(
+                    self._run_agent_async(self.suno_producer_agent, prompt)
+                )
+            else:
+                producer_output = loop.run_until_complete(
+                    self._run_agent_async(self.suno_producer_agent, prompt)
+                )
+
+            # Parse JSON output
+            suno_output = self._parse_producer_output(producer_output)
+            state.outputs.suno_output = suno_output
+
+            logger.info("Producer agent completed successfully")
+
+        except Exception as e:
+            logger.error(f"Producer error: {e}")
+            state.error = f"Producer error: {str(e)}"
+
+        return state
+
+    def _parse_producer_output(self, output: str) -> dict:
+        """
+        Parse JSON output from producer agent.
+
+        Args:
+            output: Raw output string from producer agent
+
+        Returns:
+            dict: Parsed output with style_prompt and lyric_sheet
+
+        Raises:
+            json.JSONDecodeError: If JSON is invalid
+        """
+        try:
+            # First try direct parse
+            return json.loads(output)
+        except json.JSONDecodeError:
+            # Try to extract JSON from the response
+            import re
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', output, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            # If still can't parse, return error structure
+            logger.warning(f"Failed to parse producer output as JSON: {output[:200]}")
+            return {
+                "style_prompt": "Error: Could not parse style prompt",
+                "lyric_sheet": output
+            }

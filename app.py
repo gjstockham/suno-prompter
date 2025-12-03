@@ -29,12 +29,14 @@ def initialize_session_state():
                 "songs": "",
                 "guidance": "",
                 "idea": "",
+                "producer_guidance": "",
             },
             "outputs": {
                 "template": None,
                 "idea": None,
                 "lyrics": None,
                 "feedback_history": [],
+                "suno_output": None,
             },
             "status": "idle",
             "error": None,
@@ -92,12 +94,14 @@ def render_sidebar():
                     "songs": "",
                     "guidance": "",
                     "idea": "",
+                    "producer_guidance": "",
                 },
                 "outputs": {
                     "template": None,
                     "idea": None,
                     "lyrics": None,
                     "feedback_history": [],
+                    "suno_output": None,
                 },
                 "status": "idle",
                 "error": None,
@@ -302,6 +306,100 @@ def render_final_lyrics():
                     st.markdown(feedback["revision_suggestions"])
 
     st.success("✅ Your lyrics are ready!")
+
+    # Producer section
+    render_producer_section()
+
+
+def render_producer_section():
+    """Render the Suno producer section for style prompt and lyric formatting."""
+    st.markdown("---")
+    st.subheader("Create Suno Output")
+    st.markdown(
+        "Generate Suno-compatible outputs: a style prompt and formatted lyric sheet with meta-tags."
+    )
+
+    # Production guidance input
+    producer_guidance = st.text_area(
+        "Production Guidance (Optional)",
+        value=st.session_state.workflow["inputs"]["producer_guidance"],
+        placeholder="Describe the sound you want, reference songs/artists... (e.g., 'upbeat like Taylor Swift's Shake It Off')",
+        help="Provide guidance for the production style. You can reference specific songs or artists.",
+        height=100,
+    )
+    st.session_state.workflow["inputs"]["producer_guidance"] = producer_guidance
+
+    # Generate Suno Output button
+    if st.button("Generate Suno Output", type="primary", use_container_width=True):
+        run_producer()
+
+    # Display Suno output if available
+    render_suno_output()
+
+
+def render_suno_output():
+    """Render the generated Suno outputs (style prompt and formatted lyrics)."""
+    suno_output = st.session_state.workflow["outputs"]["suno_output"]
+
+    if not suno_output:
+        return
+
+    st.markdown("---")
+    st.subheader("Suno-Ready Outputs")
+
+    # Style Prompt
+    st.markdown("**Style Prompt**")
+    st.markdown("Copy this into Suno's style/genre input:")
+    st.code(suno_output.get("style_prompt", ""), language="text")
+    if st.button("📋 Copy Style Prompt", key="copy_style"):
+        st.toast("Style prompt copied to clipboard!")
+
+    st.markdown("---")
+
+    # Formatted Lyrics
+    st.markdown("**Formatted Lyric Sheet**")
+    st.markdown("Copy this into Suno's lyrics input:")
+    st.code(suno_output.get("lyric_sheet", ""), language="text")
+    if st.button("📋 Copy Lyric Sheet", key="copy_lyrics"):
+        st.toast("Lyric sheet copied to clipboard!")
+
+    st.success("✅ Your Suno outputs are ready! Copy them to Suno to generate your song.")
+
+
+def run_producer():
+    """Execute the producer agent to generate Suno outputs."""
+    from workflows.lyric_workflow import WorkflowState, WorkflowOutputs
+
+    # Build current state from session
+    current_state = WorkflowState()
+    current_state.status = WorkflowStatus.COMPLETE if st.session_state.workflow["status"] == "complete" else WorkflowStatus.IDLE
+    current_state.inputs.artists = st.session_state.workflow["inputs"]["artists"]
+    current_state.inputs.songs = st.session_state.workflow["inputs"]["songs"]
+    current_state.inputs.guidance = st.session_state.workflow["inputs"]["guidance"]
+    current_state.inputs.idea = st.session_state.workflow["inputs"]["idea"]
+    current_state.inputs.producer_guidance = st.session_state.workflow["inputs"]["producer_guidance"]
+    current_state.outputs.template = st.session_state.workflow["outputs"]["template"]
+    current_state.outputs.lyrics = st.session_state.workflow["outputs"]["lyrics"]
+    current_state.outputs.feedback_history = st.session_state.workflow["outputs"]["feedback_history"]
+
+    # Show progress
+    with st.spinner("Generating Suno outputs..."):
+        try:
+            result = st.session_state.workflow_instance.run_producer(current_state)
+
+            # Update session state with results
+            st.session_state.workflow["outputs"]["suno_output"] = result.outputs.suno_output
+            if result.error:
+                st.error(f"Producer error: {result.error}")
+                logger.error(f"Producer failed: {result.error}")
+            else:
+                logger.info("Producer completed successfully")
+
+        except Exception as e:
+            st.error(f"Producer execution error: {str(e)}")
+            logger.error(f"Producer execution error: {e}")
+
+    st.rerun()
 
 
 def run_workflow():
