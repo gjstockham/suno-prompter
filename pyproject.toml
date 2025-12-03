@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "suno-prompter"
+version = "0.1.0"
+description = "Create perfect prompts for Suno music generation using AI agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Greg Stockham", email = "gjstockham@gmail.com"}
+]
+keywords = ["suno", "music", "ai", "lyrics", "generation", "prompt"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "streamlit>=1.32.0",
+    "agent-framework",
+    "python-dotenv>=1.0.0",
+    "nest-asyncio>=1.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/gjstockham/suno-prompter"
+Issues = "https://github.com/gjstockham/suno-prompter/issues"
+
+[project.scripts]
+suno-prompter = "suno_prompter.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+suno_prompter = ["data/*.txt"]
