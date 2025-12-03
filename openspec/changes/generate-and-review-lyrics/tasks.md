@@ -52,28 +52,28 @@
 
 ## 5. Streamlit UI Integration
 
-- [ ] 5.1 Update `app.py`:
+- [x] 5.1 Update `app.py`:
   - Add `render_idea_collection()` function after template display
   - Show template and ask for idea (text input + "Surprise Me" button)
   - Call `pick_random_idea()` on "Surprise Me"
-- [ ] 5.2 Update session state structure:
+- [x] 5.2 Update session state structure:
   - Add `idea` field to workflow inputs
   - Add `feedback_history` to workflow outputs
   - Add iteration counter and max iterations config
-- [ ] 5.3 Extend `run_workflow()` to:
+- [x] 5.3 Extend `run_workflow()` to:
   - Capture user-provided or auto-generated idea
   - Call workflow with idea
   - Handle multiple iterations (loop based on satisfaction)
-- [ ] 5.4 Add `render_lyrics_and_feedback()` function:
+- [x] 5.4 Add `render_lyrics_and_feedback()` function:
   - Display generated lyrics
   - Display reviewer feedback (expandable)
   - Show iteration count and revision suggestions
   - Buttons: "Accept and Finalize" or "Revise Lyrics"
-- [ ] 5.5 Add `render_final_lyrics()` function:
+- [x] 5.5 Add `render_final_lyrics()` function:
   - Display final accepted lyrics
   - Show revision history (optional collapse)
   - Prepare for future export functionality
-- [ ] 5.6 Test UI flow manually:
+- [x] 5.6 Test UI flow manually:
   - Generate template
   - Enter idea or use "Surprise Me"
   - See lyrics generated
@@ -104,9 +104,9 @@
 - [x] 7.1 Update `agents/__init__.py` to export new factory functions
 - [x] 7.2 Add docstrings to new agent factory functions
 - [x] 7.3 Document iteration limit and feedback thresholds in code comments
-- [ ] 7.4 Clean up any debug logging or temporary prints
-- [ ] 7.5 Update README with new features (idea collection, iteration loop)
-- [ ] 7.6 Verify no unused imports or dead code
+- [x] 7.4 Clean up any debug logging or temporary prints
+- [x] 7.5 Update README with new features (idea collection, iteration loop)
+- [x] 7.6 Verify no unused imports or dead code
 
 ## Dependencies
 - Sections 1–3 can run in parallel (agents and data independent)
