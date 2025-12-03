@@ -10,70 +10,112 @@ A Streamlit application that leverages the Microsoft Agent Framework to generate
 - 🔄 **Iterative Refinement**: Refine lyrics through multiple iterations with reviewer feedback (up to 3 revisions)
 - 💡 **Smart Ideas**: Choose your own song idea or get a random suggestion from starter ideas
 - 🤖 Microsoft Agent Framework (agent-framework) for intelligent assistance
-- 🔧 Easy configuration via environment variables (OpenAI or Azure OpenAI)
+- 🔧 Easy configuration via environment variables - supports OpenAI, Azure OpenAI, and custom OpenAI-compatible endpoints
 - ⚡ Async/await patterns for responsive interactions
+
+## Quick Start (uvx - Recommended)
+
+The fastest way to run Suno Prompter without cloning or installing Python:
+
+### 1. Install uv (one-time setup)
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### 2. Configure API credentials
+
+Create a configuration file at `~/.suno-prompter/.env`:
+
+```bash
+# Create directory
+mkdir -p ~/.suno-prompter
+
+# Create config file (edit with your API key)
+cat > ~/.suno-prompter/.env << 'EOF'
+# For OpenAI API
+OPENAI_API_KEY=your-api-key-here
+OPENAI_CHAT_MODEL_ID=gpt-4
+
+# For custom endpoints (Ollama, LM Studio, etc.)
+# OPENAI_BASE_URL=http://localhost:11434/v1
+# OPENAI_CHAT_MODEL_ID=llama3
+EOF
+```
+
+### 3. Run the app
+
+```bash
+uvx --from git+https://github.com/gjstockham/suno-prompter suno-prompter
+```
+
+The application will automatically:
+- Download Python if needed
+- Install dependencies
+- Launch in your browser
 
 ## Requirements
 
-- Python 3.10 or higher
-- OpenAI API key (or Azure OpenAI credentials)
+- Python 3.10 or higher (auto-installed by `uv` if needed)
+- OpenAI API key, Azure OpenAI credentials, or access to a custom OpenAI-compatible endpoint
 
-## Installation
+## Installation (Traditional)
 
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/gjstockham/suno-prompter
 cd suno-prompter
 ```
 
-### 2. Create a virtual environment
+### 2. Install the package
 
 ```bash
-# macOS/Linux
+# Create and activate virtual environment
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Windows
-python -m venv venv
-venv\Scripts\activate
+# Install in editable mode
+pip install -e .
 ```
 
-### 3. Install dependencies
+### 3. Configure environment variables
 
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Configure environment variables
-
-Copy the example environment file and add your API credentials:
+Create a `.env` file in the current directory or at `~/.suno-prompter/.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Then edit `.env` with your credentials:
+Edit `.env` with your credentials:
 
 ```
-# For OpenAI
-OPENAI_API_KEY=your_openai_api_key_here
+# For OpenAI API
+OPENAI_API_KEY=your-key-here
+OPENAI_CHAT_MODEL_ID=gpt-4
 
-# Or for Azure OpenAI
-AZURE_OPENAI_API_KEY=your_azure_openai_key_here
-AZURE_OPENAI_ENDPOINT=your_azure_openai_endpoint_here
-AZURE_OPENAI_MODEL_DEPLOYMENT=gpt-4
+# For custom endpoints (Ollama, LM Studio, etc.)
+# OPENAI_BASE_URL=http://localhost:11434/v1
+# OPENAI_CHAT_MODEL_ID=llama3
+```
+
+### 4. Run the application
+
+```bash
+# Using the installed command
+suno-prompter
+
+# Or as a module
+python -m suno_prompter
 ```
 
 ## Usage
 
-### Start the application
-
-```bash
-streamlit run app.py
-```
-
-The application will open in your default browser at `http://localhost:8501`
+The application will automatically open in your default browser when you run it. If using the traditional installation, you can start it with `suno-prompter` or `python -m suno_prompter`.
 
 ### Workflow: Generate a Lyric Blueprint and Create Lyrics
 
@@ -106,12 +148,28 @@ Use the "Clear Workflow" button in the sidebar to start a new session.
 
 ### Environment Variables
 
-- `OPENAI_API_KEY` - Your OpenAI API key (required if not using Azure)
-- `AZURE_OPENAI_API_KEY` - Your Azure OpenAI API key (alternative)
-- `AZURE_OPENAI_ENDPOINT` - Your Azure OpenAI endpoint URL
-- `AZURE_OPENAI_MODEL_DEPLOYMENT` - Your model deployment name on Azure
+The application supports any OpenAI-compatible API:
+
+**Required:**
+- `OPENAI_CHAT_MODEL_ID` - The model to use (e.g., `gpt-4`, `llama3`)
+
+**For OpenAI API:**
+- `OPENAI_API_KEY` - Your OpenAI API key
+
+**For Custom Endpoints (Ollama, LM Studio, etc.):**
+- `OPENAI_BASE_URL` - Custom API endpoint URL (e.g., `http://localhost:11434/v1`)
+- `OPENAI_API_KEY` - Optional, depends on your endpoint
+
+**Application Settings:**
 - `APP_DEBUG` - Enable debug mode (default: false)
 - `LOG_LEVEL` - Logging level (default: INFO)
+
+### Environment File Locations
+
+The application looks for `.env` files in this order:
+1. Current working directory (`./.env`)
+2. Home directory (`~/.suno-prompter/.env`)
+3. Environment variables already set in your shell
 
 ## Project Structure
 
