@@ -1,11 +1,9 @@
 """Lyric Template Agent for analyzing songs and generating lyric blueprints."""
 
-import asyncio
-from typing import Optional, List, Annotated
+from typing import Annotated
 from agent_framework import ChatAgent as FrameworkChatAgent, ai_function
-from agent_framework.azure import AzureOpenAIChatClient
 from pydantic import Field
-from config import config
+from agents.factory import create_chat_client
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -87,122 +85,29 @@ When analyzing multiple songs, note both common patterns AND distinguishing vari
 Use your extensive knowledge of music and lyrics. If you need to look up specific lyrics, use the search_lyrics tool."""
 
 
-class LyricTemplateAgent:
+def create_lyric_template_agent() -> FrameworkChatAgent:
     """
-    Agent for analyzing song lyrics and generating lyric blueprints.
+    Create and return a ChatAgent for lyric template generation.
 
-    Accepts song titles, artist names, or song lists as input and produces
-    comprehensive markdown blueprints analyzing structure, rhyme, imagery,
-    and literary devices.
+    Returns:
+        ChatAgent: Configured agent instance
+
+    Raises:
+        Exception: If agent creation fails
     """
+    try:
+        chat_client = create_chat_client()
 
-    def __init__(self):
-        """Initialize the lyric template agent."""
-        self.agent = None
-        self.thread = None
-        self._setup_agent()
-
-    def _setup_agent(self):
-        """Set up the agent with configured chat client and tools."""
-        try:
-            chat_client = self._create_chat_client()
-
-            self.agent = FrameworkChatAgent(
-                chat_client=chat_client,
-                instructions=SYSTEM_PROMPT,
-                name="LyricTemplateAgent",
-                tools=[search_lyrics],
-            )
-
-            # Create a new thread for conversation
-            self.thread = self.agent.get_new_thread()
-
-            logger.info("Lyric template agent initialized successfully")
-
-        except Exception as e:
-            logger.error(f"Error initializing lyric template agent: {e}")
-            raise
-
-    def _create_chat_client(self):
-        """
-        Create a chat client based on available configuration.
-
-        Returns:
-            ChatClient: Configured chat client instance
-
-        Raises:
-            ValueError: If no valid configuration is available
-        """
-        if not config.validate():
-            errors = config.get_validation_errors()
-            raise ValueError(f"Invalid configuration: {', '.join(errors)}")
-
-        logger.info("Using Azure OpenAI chat client for lyric template agent")
-        return AzureOpenAIChatClient(
-            endpoint=config.AZURE_OPENAI_ENDPOINT,
-            api_key=config.AZURE_OPENAI_API_KEY,
-            deployment_name=config.AZURE_OPENAI_DEPLOYMENT_NAME,
+        agent = FrameworkChatAgent(
+            chat_client=chat_client,
+            instructions=SYSTEM_PROMPT,
+            name="LyricTemplateAgent",
+            tools=[search_lyrics],
         )
 
-    def analyze(self, input_text: str) -> str:
-        """
-        Analyze songs and generate a lyric blueprint.
+        logger.info("Lyric template agent created successfully")
+        return agent
 
-        Args:
-            input_text: Song title, artist name, or list of songs to analyze
-
-        Returns:
-            str: Markdown blueprint document
-
-        Raises:
-            Exception: If analysis fails
-        """
-        try:
-            loop = self._get_event_loop()
-
-            if loop.is_running():
-                import nest_asyncio
-                nest_asyncio.apply()
-                response = loop.run_until_complete(self._run_analysis_async(input_text))
-            else:
-                response = loop.run_until_complete(self._run_analysis_async(input_text))
-
-            logger.info(f"Lyric analysis completed for: {input_text[:50]}...")
-            return response
-
-        except Exception as e:
-            logger.error(f"Error analyzing lyrics: {e}")
-            raise
-
-    def _get_event_loop(self):
-        """Get or create an event loop."""
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        return loop
-
-    async def _run_analysis_async(self, input_text: str) -> str:
-        """
-        Run the lyric analysis asynchronously.
-
-        Args:
-            input_text: The song/artist/list to analyze
-
-        Returns:
-            str: The generated blueprint markdown
-        """
-        try:
-            prompt = f"Please analyze the following and generate a lyric blueprint:\n\n{input_text}"
-            response = await self.agent.run(prompt, thread=self.thread)
-            return response.text or "No blueprint generated"
-        except Exception as e:
-            logger.error(f"Error running lyric analysis: {e}")
-            raise
-
-    def clear_history(self):
-        """Clear the conversation history by creating a new thread."""
-        if self.agent:
-            self.thread = self.agent.get_new_thread()
-            logger.info("Lyric template agent history cleared")
+    except Exception as e:
+        logger.error(f"Error creating lyric template agent: {e}")
+        raise

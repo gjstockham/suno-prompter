@@ -1,10 +1,12 @@
-"""Lyric workflow orchestration for sequential agent execution."""
+"""Lyric workflow orchestration using Microsoft Agent Framework."""
 
+import asyncio
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import Optional, AsyncIterator
 
-from agents import LyricTemplateAgent
+from agent_framework import WorkflowBuilder, AgentRunEvent, AgentRunUpdateEvent, WorkflowStartedEvent, WorkflowStatusEvent, WorkflowFailedEvent
+from agents import create_lyric_template_agent
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -51,7 +53,7 @@ class WorkflowState:
 
 class LyricWorkflow:
     """
-    Orchestrator for the lyric generation pipeline.
+    Orchestrator for the lyric generation pipeline using WorkflowBuilder.
 
     Coordinates sequential execution of agents:
     1. LyricTemplateAgent - Analyzes songs and generates blueprints
@@ -62,11 +64,27 @@ class LyricWorkflow:
 
     def __init__(self):
         """Initialize the workflow with required agents."""
-        self.agents = {
-            "template": LyricTemplateAgent(),
-            # Future agents added here
-        }
-        logger.info("LyricWorkflow initialized")
+        try:
+            self.lyric_template_agent = create_lyric_template_agent()
+            self.workflow = self._build_workflow()
+            logger.info("LyricWorkflow initialized with WorkflowBuilder")
+        except Exception as e:
+            logger.error(f"Error initializing LyricWorkflow: {e}")
+            raise
+
+    def _build_workflow(self):
+        """
+        Build the workflow using WorkflowBuilder.
+
+        Returns:
+            Workflow: Configured workflow instance
+        """
+        builder = WorkflowBuilder()
+        builder.set_start_executor(self.lyric_template_agent)
+        # Future: Add edges for additional agents
+        # builder.add_edge(self.lyric_template_agent, self.lyric_writer_agent)
+        # etc.
+        return builder.build()
 
     def run(self, inputs: WorkflowInputs) -> WorkflowState:
         """
@@ -89,14 +107,22 @@ class LyricWorkflow:
                 state.error = "Please provide at least one of: Artist(s), Song(s), or guidance"
                 return state
 
-            # Step 1: Run template agent
-            logger.info("Running template agent...")
-            state.outputs.template = self.agents["template"].analyze(reference)
+            # Step 1: Run workflow
+            logger.info("Running workflow...")
+            prompt = f"Please analyze the following and generate a lyric blueprint:\n\n{reference}"
 
-            # Future steps would chain here:
-            # state.outputs.lyrics = self.agents["writer"].write(state.outputs.template)
-            # state.outputs.reviewed = self.agents["reviewer"].review(state.outputs.lyrics)
-            # state.outputs.arranged = self.agents["arranger"].arrange(state.outputs.reviewed)
+            # Get or create event loop
+            loop = self._get_event_loop()
+
+            if loop.is_running():
+                import nest_asyncio
+                nest_asyncio.apply()
+                result = loop.run_until_complete(self._run_workflow_async(prompt))
+            else:
+                result = loop.run_until_complete(self._run_workflow_async(prompt))
+
+            # Extract output from workflow result
+            state.outputs.template = result
 
             state.status = WorkflowStatus.COMPLETE
             logger.info("Workflow completed successfully")
@@ -107,6 +133,56 @@ class LyricWorkflow:
             state.error = str(e)
 
         return state
+
+    async def _run_workflow_async(self, prompt: str) -> str:
+        """
+        Run the workflow asynchronously.
+
+        Args:
+            prompt: The input prompt for the workflow
+
+        Returns:
+            str: The generated blueprint markdown
+        """
+        try:
+            output = None
+            accumulated_text = []
+
+            # Stream events from workflow execution
+            async for event in self.workflow.run_stream(prompt):
+                if isinstance(event, AgentRunEvent):
+                    # Agent has completed execution
+                    output = event.data
+                    logger.info(f"AgentRunEvent received: {len(output) if output else 0} chars")
+                elif isinstance(event, AgentRunUpdateEvent):
+                    # Streaming token update - extract text from the response update
+                    if event.data and hasattr(event.data, 'text'):
+                        token = event.data.text
+                        accumulated_text.append(token)
+                        logger.debug(f"Token received: {token[:50] if token else 'empty'}")
+                elif isinstance(event, WorkflowFailedEvent):
+                    raise Exception(f"Workflow failed: {event.details.message}")
+
+            # Use accumulated text if we didn't get AgentRunEvent
+            if not output and accumulated_text:
+                output = "".join(accumulated_text)
+                logger.info(f"Using accumulated streaming text: {len(output)} chars")
+
+            logger.info(f"Workflow completed. Output: {len(output) if output else 0} chars")
+            return output or "No blueprint generated"
+
+        except Exception as e:
+            logger.error(f"Error running workflow: {e}")
+            raise
+
+    def _get_event_loop(self):
+        """Get or create an event loop."""
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        return loop
 
     def _build_reference(self, inputs: WorkflowInputs) -> str:
         """
