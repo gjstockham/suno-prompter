@@ -10,7 +10,9 @@
       "mcp__mslearn",
       "mcp__context7",
       "mcp__playwright",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(openspec:*)",
+      "Bash(gh:*)",
     ],
     "deny": [
       "Read(./.env)",

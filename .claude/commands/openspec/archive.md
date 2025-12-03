@@ -3,6 +3,7 @@ name: OpenSpec: Archive
 description: Archive a deployed OpenSpec change and update specs.
 category: OpenSpec
 tags: [openspec, archive]
+model: haiku
 ---
 <!-- OPENSPEC:START -->
 **Guardrails**
