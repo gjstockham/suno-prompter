@@ -27,9 +27,12 @@ SYSTEM_PROMPT = """You are an expert lyricist and music analyst specializing in 
 Your task is to analyze songs provided by the user (by title, artist, or as a list) and generate a comprehensive markdown blueprint that captures the structural and stylistic patterns of the lyrics.
 
 ## Input Handling
-- **Single song**: Analyze that specific song in depth
-- **Artist name**: Select 2-3 representative songs from that artist and analyze common patterns
-- **Song list**: Analyze all specified songs and synthesize patterns across the collection
+- **Specific song(s) provided**: Analyze ONLY the specified songs in depth. Do NOT select other songs.
+- **Artist name with song(s)**: Analyze ONLY the specified songs by that artist.
+- **Artist name only (no specific songs)**: Select 2-3 representative songs from that artist and analyze common patterns.
+- **Song list**: Analyze all specified songs and synthesize patterns across the collection.
+
+IMPORTANT: If the user provides specific song titles, you MUST analyze those exact songs, not other songs by the artist.
 
 ## Analysis Components
 For each song or collection, analyze and document:

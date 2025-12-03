@@ -3,6 +3,7 @@
 import streamlit as st
 from config import config
 from utils.logging import get_logger
+from utils.ideas import pick_random_idea
 from workflows import LyricWorkflow
 from workflows.lyric_workflow import WorkflowInputs, WorkflowStatus
 
@@ -27,15 +28,18 @@ def initialize_session_state():
                 "artists": "",
                 "songs": "",
                 "guidance": "",
+                "idea": "",
             },
             "outputs": {
                 "template": None,
+                "idea": None,
                 "lyrics": None,
-                "reviewed": None,
-                "arranged": None,
+                "feedback_history": [],
             },
             "status": "idle",
             "error": None,
+            "iteration": 0,
+            "max_iterations": 3,
         }
     if "workflow_instance" not in st.session_state:
         st.session_state.workflow_instance = None
@@ -87,15 +91,18 @@ def render_sidebar():
                     "artists": "",
                     "songs": "",
                     "guidance": "",
+                    "idea": "",
                 },
                 "outputs": {
                     "template": None,
+                    "idea": None,
                     "lyrics": None,
-                    "reviewed": None,
-                    "arranged": None,
+                    "feedback_history": [],
                 },
                 "status": "idle",
                 "error": None,
+                "iteration": 0,
+                "max_iterations": 3,
             }
             st.rerun()
 
@@ -147,8 +154,158 @@ def render_workflow_form():
         run_workflow()
 
 
+def render_idea_collection():
+    """Render the song idea collection UI after template generation."""
+    template = st.session_state.workflow["outputs"]["template"]
+
+    if not template:
+        return
+
+    st.markdown("---")
+    st.subheader("Select a Song Idea")
+    st.markdown(
+        "Now let's create lyrics based on this template. Do you have a song idea or title in mind?"
+    )
+
+    # Create two columns for user input and surprise button
+    col1, col2 = st.columns([3, 1])
+
+    with col1:
+        idea = st.text_input(
+            "Song idea or title",
+            value=st.session_state.workflow["inputs"]["idea"],
+            placeholder="e.g., 'Midnight Reflections' or 'Breaking Free'",
+        )
+        st.session_state.workflow["inputs"]["idea"] = idea
+
+    with col2:
+        st.write("")
+        st.write("")
+        surprise_me = st.button("Surprise Me", use_container_width=True)
+
+    if surprise_me:
+        try:
+            random_idea = pick_random_idea()
+            st.session_state.workflow["inputs"]["idea"] = random_idea
+            st.success(f"Random idea selected: {random_idea}")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Failed to pick random idea: {str(e)}")
+            logger.error(f"Error picking random idea: {e}")
+
+    # Generate lyrics button (only show if idea is provided)
+    if st.session_state.workflow["inputs"]["idea"].strip():
+        if st.button("Generate Lyrics", type="primary", use_container_width=True):
+            st.session_state.workflow["status"] = "generating_lyrics"
+            run_workflow_with_idea()
+
+
+def render_lyrics_and_feedback():
+    """Render generated lyrics with reviewer feedback."""
+    feedback_history = st.session_state.workflow["outputs"]["feedback_history"]
+
+    if not feedback_history:
+        return
+
+    st.markdown("---")
+    st.subheader("Generated Lyrics & Feedback")
+
+    # Show current iteration
+    current_feedback = feedback_history[-1]
+    st.markdown(f"**Iteration {current_feedback.iteration} of {st.session_state.workflow['max_iterations']}**")
+
+    # Show all iterations with lyrics and feedback
+    with st.expander("Iteration History", expanded=False):
+        for i, entry in enumerate(feedback_history, 1):
+            with st.expander(f"Iteration {i}"):
+                st.markdown("**Lyrics:**")
+                st.markdown(entry.lyrics)
+
+                st.markdown("---")
+                st.markdown("**Feedback:**")
+                feedback = entry.feedback
+
+                if feedback.get("satisfied"):
+                    st.success("✅ Reviewer is satisfied with these lyrics!")
+                else:
+                    st.warning("⚠️ Reviewer has suggestions for improvement")
+
+                if feedback.get("style_feedback"):
+                    st.markdown("**Style Feedback:**")
+                    st.markdown(feedback["style_feedback"])
+
+                if feedback.get("plagiarism_concerns"):
+                    st.markdown("**Plagiarism/Cliché Check:**")
+                    st.markdown(feedback["plagiarism_concerns"])
+
+                if feedback.get("revision_suggestions"):
+                    st.markdown("**Revision Suggestions:**")
+                    st.markdown(feedback["revision_suggestions"])
+
+    # Action buttons
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("Accept & Finalize", use_container_width=True, type="primary"):
+            st.session_state.workflow["status"] = "complete"
+            st.rerun()
+
+    with col2:
+        # Only show revise button if not at max iterations
+        if current_feedback.iteration < st.session_state.workflow["max_iterations"]:
+            if st.button("Request Revision", use_container_width=True):
+                st.session_state.workflow["status"] = "generating_lyrics"
+                run_workflow_with_idea()
+        else:
+            st.button("Max Iterations Reached", use_container_width=True, disabled=True)
+
+
+def render_final_lyrics():
+    """Render the final accepted lyrics with revision history."""
+    lyrics = st.session_state.workflow["outputs"]["lyrics"]
+    feedback_history = st.session_state.workflow["outputs"]["feedback_history"]
+
+    if not lyrics or st.session_state.workflow["status"] != "complete":
+        return
+
+    st.markdown("---")
+    st.subheader("Final Lyrics")
+    st.markdown(lyrics)
+
+    # Show all iterations with lyrics and feedback
+    with st.expander("Iteration History", expanded=False):
+        for i, entry in enumerate(feedback_history, 1):
+            with st.expander(f"Iteration {i}"):
+                st.markdown("**Lyrics:**")
+                st.markdown(entry.lyrics)
+
+                st.markdown("---")
+                st.markdown("**Feedback:**")
+                feedback = entry.feedback
+
+                if feedback.get("satisfied"):
+                    st.success("✅ Reviewer is satisfied with these lyrics!")
+                else:
+                    st.warning("⚠️ Reviewer has suggestions for improvement")
+
+                if feedback.get("style_feedback"):
+                    st.markdown("**Style Feedback:**")
+                    st.markdown(feedback["style_feedback"])
+
+                if feedback.get("plagiarism_concerns"):
+                    st.markdown("**Plagiarism/Cliché Check:**")
+                    st.markdown(feedback["plagiarism_concerns"])
+
+                if feedback.get("revision_suggestions"):
+                    st.markdown("**Revision Suggestions:**")
+                    st.markdown(feedback["revision_suggestions"])
+
+    st.success("✅ Your lyrics are ready!")
+
+
 def run_workflow():
-    """Execute the workflow pipeline."""
+    """Execute the workflow pipeline for template generation."""
     inputs = WorkflowInputs(
         artists=st.session_state.workflow["inputs"]["artists"],
         songs=st.session_state.workflow["inputs"]["songs"],
@@ -183,6 +340,40 @@ def run_workflow():
     st.rerun()
 
 
+def run_workflow_with_idea():
+    """Execute the workflow pipeline with lyrics generation and review."""
+    inputs = WorkflowInputs(
+        artists=st.session_state.workflow["inputs"]["artists"],
+        songs=st.session_state.workflow["inputs"]["songs"],
+        guidance=st.session_state.workflow["inputs"]["guidance"],
+        idea=st.session_state.workflow["inputs"]["idea"],
+    )
+
+    # Show progress
+    with st.spinner("Generating and reviewing lyrics..."):
+        try:
+            result = st.session_state.workflow_instance.run(inputs)
+
+            # Update session state with results
+            st.session_state.workflow["status"] = result.status.value
+            st.session_state.workflow["outputs"]["idea"] = result.outputs.idea
+            st.session_state.workflow["outputs"]["lyrics"] = result.outputs.lyrics
+            st.session_state.workflow["outputs"]["feedback_history"] = result.outputs.feedback_history
+            st.session_state.workflow["error"] = result.error
+
+            if result.status == WorkflowStatus.ERROR:
+                logger.error(f"Workflow failed: {result.error}")
+            else:
+                logger.info("Lyrics generation and review completed successfully")
+
+        except Exception as e:
+            st.session_state.workflow["status"] = "error"
+            st.session_state.workflow["error"] = str(e)
+            logger.error(f"Workflow execution error: {e}")
+
+    st.rerun()
+
+
 def render_output():
     """Render the workflow output."""
     status = st.session_state.workflow["status"]
@@ -191,10 +382,24 @@ def render_output():
 
     if status == "error" and error:
         st.error(f"Error: {error}")
-    elif status == "complete" and template:
+    elif status in ["complete", "generating_lyrics", "reviewing"] and template:
         st.markdown("---")
-        st.subheader("Lyric Blueprint")
-        st.markdown(template)
+
+        # Show idea collection if template exists but no feedback history yet
+        if not st.session_state.workflow["outputs"]["feedback_history"]:
+            st.subheader("Lyric Blueprint")
+            st.markdown(template)
+            render_idea_collection()
+        else:
+            # Collapse template section when we have feedback
+            with st.expander("Lyric Blueprint", expanded=False):
+                st.markdown(template)
+
+            # Show appropriate view based on status
+            if status == "complete":
+                render_final_lyrics()
+            else:
+                render_lyrics_and_feedback()
 
 
 def main():
