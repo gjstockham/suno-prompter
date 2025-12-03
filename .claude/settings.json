@@ -12,7 +12,7 @@
       "mcp__playwright",
       "Bash(source:*)",
       "Bash(openspec:*)",
-      "Bash(gh:*)",
+      "Bash(gh:*)"
     ],
     "deny": [
       "Read(./.env)",

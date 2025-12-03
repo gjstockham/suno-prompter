@@ -210,35 +210,37 @@ def render_lyrics_and_feedback():
     st.markdown("---")
     st.subheader("Generated Lyrics & Feedback")
 
-    # Show current iteration feedback
+    # Show current iteration
     current_feedback = feedback_history[-1]
-
     st.markdown(f"**Iteration {current_feedback.iteration} of {st.session_state.workflow['max_iterations']}**")
 
-    # Display lyrics
-    with st.expander("Generated Lyrics", expanded=True):
-        st.markdown(current_feedback.lyrics)
+    # Show all iterations with lyrics and feedback
+    with st.expander("Iteration History", expanded=False):
+        for i, entry in enumerate(feedback_history, 1):
+            with st.expander(f"Iteration {i}"):
+                st.markdown("**Lyrics:**")
+                st.markdown(entry.lyrics)
 
-    # Display feedback
-    feedback = current_feedback.feedback
+                st.markdown("---")
+                st.markdown("**Feedback:**")
+                feedback = entry.feedback
 
-    with st.expander("Reviewer Feedback", expanded=True):
-        if feedback.get("satisfied"):
-            st.success("✅ Reviewer is satisfied with these lyrics!")
-        else:
-            st.warning("⚠️ Reviewer has suggestions for improvement")
+                if feedback.get("satisfied"):
+                    st.success("✅ Reviewer is satisfied with these lyrics!")
+                else:
+                    st.warning("⚠️ Reviewer has suggestions for improvement")
 
-        if feedback.get("style_feedback"):
-            st.markdown("**Style Feedback:**")
-            st.markdown(feedback["style_feedback"])
+                if feedback.get("style_feedback"):
+                    st.markdown("**Style Feedback:**")
+                    st.markdown(feedback["style_feedback"])
 
-        if feedback.get("plagiarism_concerns"):
-            st.markdown("**Plagiarism/Cliché Check:**")
-            st.markdown(feedback["plagiarism_concerns"])
+                if feedback.get("plagiarism_concerns"):
+                    st.markdown("**Plagiarism/Cliché Check:**")
+                    st.markdown(feedback["plagiarism_concerns"])
 
-        if feedback.get("revision_suggestions"):
-            st.markdown("**Revision Suggestions:**")
-            st.markdown(feedback["revision_suggestions"])
+                if feedback.get("revision_suggestions"):
+                    st.markdown("**Revision Suggestions:**")
+                    st.markdown(feedback["revision_suggestions"])
 
     # Action buttons
     st.markdown("---")
@@ -271,12 +273,33 @@ def render_final_lyrics():
     st.subheader("Final Lyrics")
     st.markdown(lyrics)
 
-    # Show revision history if there are multiple iterations
-    if len(feedback_history) > 1:
-        with st.expander("Revision History", expanded=False):
-            for i, entry in enumerate(feedback_history, 1):
-                with st.expander(f"Iteration {i}"):
-                    st.markdown(entry.lyrics)
+    # Show all iterations with lyrics and feedback
+    with st.expander("Iteration History", expanded=False):
+        for i, entry in enumerate(feedback_history, 1):
+            with st.expander(f"Iteration {i}"):
+                st.markdown("**Lyrics:**")
+                st.markdown(entry.lyrics)
+
+                st.markdown("---")
+                st.markdown("**Feedback:**")
+                feedback = entry.feedback
+
+                if feedback.get("satisfied"):
+                    st.success("✅ Reviewer is satisfied with these lyrics!")
+                else:
+                    st.warning("⚠️ Reviewer has suggestions for improvement")
+
+                if feedback.get("style_feedback"):
+                    st.markdown("**Style Feedback:**")
+                    st.markdown(feedback["style_feedback"])
+
+                if feedback.get("plagiarism_concerns"):
+                    st.markdown("**Plagiarism/Cliché Check:**")
+                    st.markdown(feedback["plagiarism_concerns"])
+
+                if feedback.get("revision_suggestions"):
+                    st.markdown("**Revision Suggestions:**")
+                    st.markdown(feedback["revision_suggestions"])
 
     st.success("✅ Your lyrics are ready!")
 
@@ -361,16 +384,22 @@ def render_output():
         st.error(f"Error: {error}")
     elif status in ["complete", "generating_lyrics", "reviewing"] and template:
         st.markdown("---")
-        st.subheader("Lyric Blueprint")
-        st.markdown(template)
 
         # Show idea collection if template exists but no feedback history yet
         if not st.session_state.workflow["outputs"]["feedback_history"]:
+            st.subheader("Lyric Blueprint")
+            st.markdown(template)
             render_idea_collection()
         else:
-            # Show feedback and lyrics if we have them
-            render_lyrics_and_feedback()
-            render_final_lyrics()
+            # Collapse template section when we have feedback
+            with st.expander("Lyric Blueprint", expanded=False):
+                st.markdown(template)
+
+            # Show appropriate view based on status
+            if status == "complete":
+                render_final_lyrics()
+            else:
+                render_lyrics_and_feedback()
 
 
 def main():
