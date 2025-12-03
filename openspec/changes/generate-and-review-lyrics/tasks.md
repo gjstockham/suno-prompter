@@ -2,52 +2,53 @@
 
 ## 1. Foundation & Data
 
-- [ ] 1.1 Create `data/starter_ideas.txt` with 10 initial song topic ideas (one per line)
-- [ ] 1.2 Implement `pick_random_idea()` utility function in utils module
-- [ ] 1.3 Test `pick_random_idea()` independently: load file, select random, return idea
+- [x] 1.1 Create `data/starter_ideas.txt` with 10 initial song topic ideas (one per line)
+- [x] 1.2 Implement `pick_random_idea()` utility function in utils module
+- [x] 1.3 Test `pick_random_idea()` independently: load file, select random, return idea
 
 ## 2. Lyric Writer Agent
 
-- [ ] 2.1 Create `agents/lyric_writer_agent.py` using ChatAgent from Agent Framework
-- [ ] 2.2 Define system prompt that emphasizes:
+- [x] 2.1 Create `agents/lyric_writer_agent.py` using ChatAgent from Agent Framework
+- [x] 2.2 Define system prompt that emphasizes:
   - Adhering to style template structure (verse, chorus, bridge, etc.)
   - Matching rhyme schemes and meter from template
   - Incorporating user's song idea/theme
   - Originality and not copying existing songs
-- [ ] 2.3 Wire chat client from factory based on environment config
-- [ ] 2.4 Implement `create_lyric_writer_agent()` factory function
-- [ ] 2.5 Test writer agent standalone: provide template + idea, verify lyrics are generated
+- [x] 2.3 Wire chat client from factory based on environment config
+- [x] 2.4 Implement `create_lyric_writer_agent()` factory function
+- [x] 2.5 Test writer agent standalone: provide template + idea, verify lyrics are generated
 
 ## 3. Lyric Reviewer Agent
 
-- [ ] 3.1 Create `agents/lyric_reviewer_agent.py` using ChatAgent from Agent Framework
-- [ ] 3.2 Define system prompt that instructs agent to:
+- [x] 3.1 Create `agents/lyric_reviewer_agent.py` using ChatAgent from Agent Framework
+- [x] 3.2 Define system prompt that instructs agent to:
   - Compare lyrics against style template requirements
   - Evaluate rhyme scheme and meter adherence
   - Check for plagiarism/clichés using LLM training knowledge
   - Flag plagiarism concerns as warnings (not blockers)
   - Provide constructive revision suggestions
   - Output satisfaction assessment (satisfied or not)
-- [ ] 3.3 Implement structured feedback output (dataclass with: satisfied, style_feedback, plagiarism_concerns, revision_suggestions)
-- [ ] 3.4 Wire chat client from factory
-- [ ] 3.5 Implement `create_lyric_reviewer_agent()` factory function
-- [ ] 3.6 Test reviewer agent standalone: provide template + lyrics, verify feedback is structured and plagiarism concerns are included
+- [x] 3.3 Implement structured feedback output (dataclass with: satisfied, style_feedback, plagiarism_concerns, revision_suggestions)
+- [x] 3.4 Wire chat client from factory
+- [x] 3.5 Implement `create_lyric_reviewer_agent()` factory function
+- [x] 3.6 Test reviewer agent standalone: provide template + lyrics, verify feedback is structured and plagiarism concerns are included
 
 ## 4. Workflow Orchestration
 
-- [ ] 4.1 Extend `workflows/lyric_workflow.py`:
+- [x] 4.1 Extend `workflows/lyric_workflow.py`:
   - Add `idea` field to `WorkflowInputs`
   - Add `idea`, `feedback_history` fields to `WorkflowOutputs`
   - Add new status: "idea_collection", "generating_lyrics", "reviewing"
-- [ ] 4.2 Extend `LyricWorkflow` to support writer → reviewer loop:
+- [x] 4.2 Extend `LyricWorkflow` to support writer → reviewer loop:
   - Add `lyric_writer_agent` and `lyric_reviewer_agent` initialization
-  - Add `generate_and_review()` method that handles idea + writer + reviewer loop
+  - Add `_generate_and_review_lyrics()` method that handles idea + writer + reviewer loop
   - Implement iteration limit (max 3)
   - Store feedback history in outputs
-- [ ] 4.3 Update `_build_workflow()` to add writer and reviewer agents to WorkflowBuilder
-  - Set up edges: template → (pause) → writer → reviewer
-  - Configure for streaming event handling
-- [ ] 4.4 Test workflow: provide template + idea, verify writer generates lyrics and reviewer critiques
+- [x] 4.3 Update workflow to integrate writer and reviewer agents:
+  - Set up sequential execution: template → writer → reviewer
+  - Configure for async/await execution
+  - Implement JSON feedback parsing
+- [x] 4.4 Test workflow: provide template + idea, verify writer generates lyrics and reviewer critiques
 
 ## 5. Streamlit UI Integration
 
@@ -100,9 +101,9 @@
 
 ## 7. Cleanup & Documentation
 
-- [ ] 7.1 Update `agents/__init__.py` to export new factory functions
-- [ ] 7.2 Add docstrings to new agent factory functions
-- [ ] 7.3 Document iteration limit and feedback thresholds in code comments
+- [x] 7.1 Update `agents/__init__.py` to export new factory functions
+- [x] 7.2 Add docstrings to new agent factory functions
+- [x] 7.3 Document iteration limit and feedback thresholds in code comments
 - [ ] 7.4 Clean up any debug logging or temporary prints
 - [ ] 7.5 Update README with new features (idea collection, iteration loop)
 - [ ] 7.6 Verify no unused imports or dead code
