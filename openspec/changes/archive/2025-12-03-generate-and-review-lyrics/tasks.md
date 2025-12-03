@@ -83,18 +83,18 @@
 
 ## 6. Configuration & Testing
 
-- [ ] 6.1 Validate agents initialize with current Azure OpenAI config
-- [ ] 6.2 Test writer agent with multiple template styles
-- [ ] 6.3 Test reviewer agent with various lyrics (good adherence, poor adherence, potential plagiarism)
-- [ ] 6.4 Test idea collection:
+- [x] 6.1 Validate agents initialize with current Azure OpenAI config
+- [x] 6.2 Test writer agent with multiple template styles
+- [x] 6.3 Test reviewer agent with various lyrics (good adherence, poor adherence, potential plagiarism)
+- [x] 6.4 Test idea collection:
   - Manual idea entry
   - "Surprise Me" with random selection
   - Verify ideas persist across iterations
-- [ ] 6.5 Test iteration loop:
+- [x] 6.5 Test iteration loop:
   - Verify max 3 iterations enforced
   - Verify feedback accumulates correctly
   - Verify user can force finalize after max iterations
-- [ ] 6.6 Run app locally: `streamlit run app.py`
+- [x] 6.6 Run app locally: `streamlit run app.py`
   - Complete full workflow: template → idea → lyrics → feedback → accept
   - Test iteration loop (request revision, see new lyrics)
   - Verify session state persists correctly
