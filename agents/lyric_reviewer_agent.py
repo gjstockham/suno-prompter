@@ -30,8 +30,24 @@ Check each requirement:
 ### 2. Rhyme Scheme Accuracy (Critical — Must Pass)
 For each section, verify:
 - [ ] Rhyme scheme matches template exactly (e.g., if ABAB specified, lines 1&3 rhyme, 2&4 rhyme)
-- [ ] Rhymes are actual rhymes (not just similar sounds that don't rhyme)
+- [ ] Rhymes are valid (see rhyme types below)
 - [ ] No forced or awkward rhymes that break natural language
+
+**What Counts as a Valid Rhyme:**
+Words rhyme if their END SOUNDS match. Focus on the vowel sound and any consonants that follow it.
+
+✓ VALID rhymes (accept these):
+- Perfect rhymes: me/free/see/be, night/light/fight, love/above/dove, day/way/say
+- Vowel rhymes: go/know/show, fly/sky/high/by, true/you/through/new
+- Multi-syllable: remember/December, away/today, believe/receive
+- Near/slant rhymes (acceptable in lyrics): home/alone, love/of, again/rain
+
+✗ NOT rhymes (reject these):
+- Words that only share starting sounds: love/live, cat/car
+- Words that look similar but sound different: love/move, word/sword
+- Completely unrelated end sounds: house/tree, water/simple
+
+**When evaluating, say the ending sounds out loud mentally. "me" and "free" both end in "ee" sound = valid rhyme.**
 
 **Identify specific lines where rhyme scheme deviates.**
 
