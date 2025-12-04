@@ -2,7 +2,7 @@
 
 ## Summary
 
-Replace the custom `LyricWorkflow` orchestration with Microsoft Agent Framework's native workflow patterns (`SequentialBuilder`) and human-in-the-loop support (`approval_mode`, `RequestInfoEvent`). This aligns the codebase with framework best practices and enables native HITL at each workflow step.
+Replace the custom `LyricWorkflow` orchestration with Microsoft Agent Framework's native workflow patterns. This uses `WorkflowBuilder` with agents added directly to the workflow graph, conditional edges for routing, and the framework's `request_info()` / `@response_handler` pattern for human-in-the-loop interactions.
 
 ## Motivation
 
@@ -21,24 +21,26 @@ Replace the custom `LyricWorkflow` orchestration with Microsoft Agent Framework'
 
 ### Benefits of Migration
 1. **Framework alignment** - Follow documented Microsoft Agent Framework patterns
-2. **Native HITL** - Each step can pause for user approval using `RequestInfoEvent`
-3. **Portability** - Workflow can run via CLI, API, or UI
-4. **Checkpointing** - Save/resume workflows across sessions
-5. **Better event streaming** - Use `WorkflowEvent` hierarchy for progress tracking
+2. **Native HITL** - Use `request_info()` to pause for user input at any step
+3. **Portability** - Workflow can run via CLI, API, or UI with thin adapters
+4. **Checkpointing** - Save/resume workflows across sessions (framework-native)
+5. **Better event streaming** - Framework emits typed events for progress tracking
 6. **Testability** - Workflow logic is decoupled from UI
 
 ## Scope
 
 ### In Scope
-- Replace `LyricWorkflow` with `SequentialBuilder`-based workflow
-- Implement HITL approval points using `approval_mode` and `RequestInfoEvent`
-- Refactor Streamlit to consume workflow events
-- Add workflow state persistence (optional phase 2)
+- Replace `LyricWorkflow` with `WorkflowBuilder`-based workflow
+- Add agents directly to workflow graph (framework auto-wraps them)
+- Implement HITL using `request_info()` and `@response_handler`
+- Create minimal custom executors for HITL coordination
+- Refactor Streamlit to consume workflow events via `run_stream()`
 
 ### Out of Scope
 - Changing agent prompts or behavior
 - Adding new agents or capabilities
 - Changing the fundamental 4-step workflow structure
+- AG-UI integration (future enhancement)
 
 ## Proposed Architecture
 
@@ -57,113 +59,100 @@ Streamlit session state
 ```
 Streamlit UI (or CLI/API)
     ↓
-WorkflowRunner (thin adapter)
+workflow.run_stream() / send_responses_streaming()
     ↓
-SequentialBuilder workflow with HITL
+WorkflowBuilder graph with auto-wrapped agents
     ↓
-Framework events (RequestInfoEvent, WorkflowCompletedEvent)
+Framework events (RequestInfoEvent, WorkflowOutputEvent)
     ↓
-UI handles events and sends responses
+UI adapter handles events and sends responses
 ```
 
 ### Workflow Structure
 
+Agents are added **directly** to the workflow graph. The framework auto-wraps them as executors:
+
 ```python
-from agent_framework import SequentialBuilder, Executor, handler
-
-# Phase 1: Template Generation
-template_executor = TemplateExecutor(template_agent)
-
-# Phase 2: Lyric Generation with Review Loop
-lyric_executor = LyricGenerationExecutor(writer_agent, reviewer_agent)
-
-# Phase 3: Production
-producer_executor = ProducerExecutor(producer_agent)
+from agent_framework import WorkflowBuilder
 
 workflow = (
-    SequentialBuilder()
-    .participants([
-        template_executor,      # Generates blueprint, requests song idea
-        lyric_executor,         # Generates + reviews, requests acceptance
-        producer_executor,      # Generates Suno output
-    ])
+    WorkflowBuilder()
+    .set_start_executor(template_agent)       # Auto-wrapped
+    .add_edge(template_agent, idea_collector) # Custom executor for HITL
+    .add_edge(idea_collector, lyric_generator)# Custom executor with loop
+    .add_edge(lyric_generator, producer_agent)# Auto-wrapped
+    .add_edge(producer_agent, output_formatter)
     .build()
 )
 ```
 
-### Human-in-the-Loop Points
+### Custom Executors (Minimal)
 
-| Step | HITL Type | User Action |
-|------|-----------|-------------|
-| After template generation | `RequestInfoEvent` | Provide song idea |
-| After lyric generation | `RequestInfoEvent` | Accept, revise, or provide feedback |
-| After producer output | None (final) | Copy outputs to Suno |
+Only **3 small custom executors** are needed:
 
-### Custom Executors
+| Executor | Purpose | HITL |
+|----------|---------|------|
+| `IdeaCollector` | Receives template, requests song idea from user | Yes |
+| `LyricGenerator` | Runs writer/reviewer loop, requests approval | Yes |
+| `OutputFormatter` | Parses producer output, yields final result | No |
 
-The framework's `SequentialBuilder` supports custom `Executor` classes for complex logic:
+### Human-in-the-Loop Pattern
+
+Using the framework's native `request_info()` API:
 
 ```python
-class LyricGenerationExecutor(Executor):
-    """Handles the writer/reviewer loop with HITL approval."""
+from agent_framework import Executor, handler, response_handler
+from dataclasses import dataclass
 
-    def __init__(self, writer_agent, reviewer_agent, max_iterations=3):
-        self.writer = writer_agent
-        self.reviewer = reviewer_agent
-        self.max_iterations = max_iterations
+@dataclass
+class SongIdeaRequest:
+    template: str
 
+class IdeaCollector(Executor):
     @handler
-    async def generate_and_review(self, conversation, ctx):
-        template = extract_template(conversation)
-
-        # Request song idea from user
-        idea = await ctx.request_input(
-            prompt="Please provide a song idea or theme:",
-            input_type="text"
+    async def on_template(self, template_response, ctx):
+        await ctx.request_info(
+            request_data=SongIdeaRequest(template=template_response.text),
+            response_type=str
         )
 
-        # Iterative generation loop
-        for iteration in range(self.max_iterations):
-            lyrics = await self.writer.run(template, idea, feedback)
-            review = await self.reviewer.run(template, lyrics)
-
-            if review.satisfied:
-                break
-            feedback = review.revision_suggestions
-
-        # Request user acceptance
-        accepted = await ctx.request_approval(
-            message=f"Generated lyrics after {iteration+1} iterations:",
-            content=lyrics,
-            options=["Accept", "Revise", "Regenerate"]
-        )
-
-        if accepted == "Revise":
-            user_feedback = await ctx.request_input("What changes would you like?")
-            # Continue loop with user feedback
-
-        return conversation + [ChatMessage(role="assistant", text=lyrics)]
+    @response_handler
+    async def on_idea(self, req: SongIdeaRequest, idea: str, ctx):
+        await ctx.send_message({"template": req.template, "idea": idea})
 ```
+
+### HITL Points
+
+| Step | Request Type | User Action |
+|------|--------------|-------------|
+| After template generation | `SongIdeaRequest` | Provide song idea/title |
+| After lyric generation | `LyricApprovalRequest` | Accept or request changes |
+| After producer (optional) | None | Copy outputs to Suno |
 
 ## Risk Assessment
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Framework API changes | Low | High | Pin dependency versions |
-| Streamlit event handling complexity | Medium | Medium | Build thin adapter layer |
-| Migration breaks existing functionality | Medium | High | Comprehensive testing, feature flags |
-| Learning curve for framework patterns | Low | Low | Documentation, incremental adoption |
+| Framework API learning curve | Medium | Low | Detailed design doc with examples |
+| Streamlit async compatibility | Medium | Medium | Use `send_responses_streaming()` pattern |
+| Migration breaks existing functionality | Medium | High | Comprehensive testing, feature flag |
+| Framework version changes | Low | Medium | Pin `agent-framework-core` version |
 
 ## Dependencies
 
-- `agent-framework` package with workflows support
-- Understanding of `SequentialBuilder`, `Executor`, `RequestInfoEvent` patterns
-- Streamlit async compatibility (may need websocket approach for true streaming)
+- `agent-framework-core` package
+- Framework patterns used:
+  - `WorkflowBuilder` for graph construction
+  - `Executor` base class with `@handler` and `@response_handler`
+  - `WorkflowContext.request_info()` for HITL
+  - `RequestInfoEvent` for event handling
+  - `workflow.run_stream()` and `send_responses_streaming()`
 
 ## Success Criteria
 
 1. Workflow runs identically to current behavior
-2. Each HITL point uses native framework patterns
+2. Each HITL point uses native `request_info()` pattern
 3. Workflow can be tested without Streamlit
-4. Events stream to UI in real-time
+4. Events stream to UI in real-time via `run_stream()`
 5. No regression in user experience
+6. Code is simpler than current implementation
