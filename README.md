@@ -184,10 +184,19 @@ suno-prompter/
 │   ├── __init__.py
 │   ├── lyric_template_agent.py      # Generates lyric blueprints
 │   ├── lyric_writer_agent.py        # Generates lyrics from template + idea
-│   └── lyric_reviewer_agent.py      # Reviews lyrics for quality
-├── workflows/
-│   ├── __init__.py
-│   └── lyric_workflow.py            # Orchestrates template → writer → reviewer loop
+│   ├── lyric_reviewer_agent.py      # Reviews lyrics for quality
+│   └── suno_producer_agent.py       # Formats Suno-ready outputs
+├── src/suno_prompter/
+│   ├── workflows/
+│   │   ├── __init__.py
+│   │   ├── builder.py               # Workflow construction
+│   │   ├── types.py                 # HITL request/response types
+│   │   └── executors/               # Custom workflow executors
+│   │       ├── idea_collector.py    # HITL for song idea
+│   │       ├── lyric_generator.py   # Writer/reviewer loop + HITL
+│   │       └── output_formatter.py  # Final output formatting
+│   └── adapters/
+│       └── streamlit_adapter.py     # Streamlit integration
 ├── utils/
 │   ├── __init__.py
 │   ├── logging.py                   # Logging utilities
@@ -198,7 +207,7 @@ suno-prompter/
     ├── project.md                   # Project context and conventions
     └── changes/
         ├── archive/                 # Archived proposals
-        └── generate-and-review-lyrics/  # Current proposal
+        └── migrate-to-framework-workflows/  # Current implementation
 ```
 
 ## Development
@@ -263,28 +272,47 @@ The application validates API configuration on startup. If configuration is inva
 
 ## Architecture
 
-### Microsoft Agent Framework
+### Microsoft Agent Framework Workflows
 
-The application uses Microsoft's official Agent Framework (`agent-framework`) for AI capabilities:
-- **ChatAgent**: The primary agent that handles conversations
-- **Chat Clients**: Supports OpenAI and Azure OpenAI backends
-- **Thread Management**: Maintains multi-turn conversation context
-- **Async Processing**: Built on async/await for responsive interactions
+The application uses Microsoft's Agent Framework with native workflow orchestration:
+
+**Workflow Graph:**
+```
+template_agent → IdeaCollector → LyricGenerator → producer_agent → OutputFormatter
+                 (HITL: idea)    (HITL: approval)
+```
+
+**Key Components:**
+- **WorkflowBuilder**: Constructs the workflow graph with auto-wrapped agents
+- **Custom Executors**: Handle human-in-the-loop (HITL) interactions and complex logic
+  - `IdeaCollector`: Requests song idea from user
+  - `LyricGenerator`: Runs writer/reviewer loop with approval HITL
+  - `OutputFormatter`: Formats final Suno-ready outputs
+- **StreamlitWorkflowAdapter**: Bridges framework events with Streamlit's execution model
+- **HITL Pattern**: Uses `request_info()` and `@response_handler` for user interactions
+
+**Benefits:**
+- ✅ Native framework patterns (no custom orchestration)
+- ✅ Event-driven architecture with `run_stream()` and `send_responses_streaming()`
+- ✅ Portable workflow logic (can run via CLI, API, or UI)
+- ✅ Type-safe HITL requests and responses
+- ✅ No async workarounds needed (removed `nest_asyncio`)
 
 ### Configuration Management
 
 `config.py` handles all environment variable loading and validation:
 - OpenAI API key support
 - Azure OpenAI support (endpoint, API key, deployment name)
+- Custom OpenAI-compatible endpoints (Ollama, LM Studio, etc.)
 - Application settings (debug mode, logging level)
 
 ### Streamlit UI
 
-The Streamlit interface provides:
-- Chat message display
-- User input handling
-- Session state management
-- Real-time message rendering
+The Streamlit adapter provides:
+- Workflow execution via adapter pattern
+- HITL request rendering and response submission
+- Session state management for workflow persistence
+- Real-time event streaming and status updates
 
 ## Implementation Status
 
@@ -295,6 +323,13 @@ The Streamlit interface provides:
 - [x] Iterative refinement loop (up to 3 revisions)
 - [x] Human-in-loop idea collection
 - [x] Random idea suggestion from starter ideas
+- [x] Suno producer agent for formatted outputs
+- [x] **Migration to Microsoft Agent Framework Workflows**
+  - [x] Native `WorkflowBuilder` orchestration
+  - [x] HITL via `request_info()` and `@response_handler`
+  - [x] Custom executors for HITL and complex logic
+  - [x] Streamlit adapter for event-driven UI
+  - [x] Removed `nest_asyncio` dependency
 
 ### Future Enhancements
 
@@ -307,6 +342,8 @@ The Streamlit interface provides:
 - [ ] Advanced analytics on lyrics quality and styles
 - [ ] Customizable iteration limits
 - [ ] Additional starter ideas source (API/database)
+- [ ] CLI adapter for terminal-based usage
+- [ ] Workflow checkpointing and resume capability
 
 ## Contributing
 

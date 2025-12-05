@@ -1,5 +1,11 @@
 """Workflow orchestration for the Suno Prompter application."""
 
-from workflows.lyric_workflow import LyricWorkflow
+from .builder import build_suno_workflow
+from .types import SongIdeaRequest, LyricApprovalRequest, WorkflowOutput
 
-__all__ = ["LyricWorkflow"]
+__all__ = [
+    "build_suno_workflow",
+    "SongIdeaRequest",
+    "LyricApprovalRequest",
+    "WorkflowOutput",
+]
