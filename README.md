@@ -185,30 +185,19 @@ The application looks for `.env` files in this order:
 
 ```
 suno-prompter/
-├── app.py                           # Main Streamlit application
-├── config.py                        # Configuration management
+├── app.py                           # Wrapper to run packaged Streamlit app
+├── src/
+│   └── suno_prompter/
+│       ├── app.py                   # Main Streamlit application
+│       ├── config.py                # Configuration management
+│       ├── agents/                  # Agent definitions (OpenAI/Azure support)
+│       ├── workflows/               # Orchestrates template → writer → reviewer loop
+│       ├── utils/                   # Logging, ideas helper, etc.
+│       └── data/                    # starter_ideas.txt
+├── devui/agents.py                  # DevUI launcher for debugging agents
 ├── requirements.txt                 # Python dependencies
 ├── .env.example                     # Example environment variables
-├── README.md                        # This file
-├── agents/
-│   ├── __init__.py
-│   ├── lyric_template_agent.py      # Generates lyric blueprints
-│   ├── lyric_writer_agent.py        # Generates lyrics from template + idea
-│   └── lyric_reviewer_agent.py      # Reviews lyrics for quality
-├── workflows/
-│   ├── __init__.py
-│   └── lyric_workflow.py            # Orchestrates template → writer → reviewer loop
-├── utils/
-│   ├── __init__.py
-│   ├── logging.py                   # Logging utilities
-│   └── ideas.py                     # Starter idea selection
-├── data/
-│   └── starter_ideas.txt            # 10 song idea prompts
-└── openspec/
-    ├── project.md                   # Project context and conventions
-    └── changes/
-        ├── archive/                 # Archived proposals
-        └── generate-and-review-lyrics/  # Current proposal
+└── openspec/                        # Project context and change specs
 ```
 
 ## Development
