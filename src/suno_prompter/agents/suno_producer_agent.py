@@ -25,13 +25,9 @@ Create detailed, evocative style prompts up to 1000 characters. Include:
 - **Vocal characteristics**: Type, style, processing, layering
 - **Production qualities**: Mix style, atmosphere, sonic texture
 - **Tempo and feel**: BPM, groove, rhythmic feel
-- **Advanced parameters** (optional):
-  - `audio %: X` - Audio influence (0-100)
-  - `style %: X` - Style adherence (0-100)
-  - `weirdness %: X` - Creative variation (0-100)
 
 **Example style prompt:**
-"Dark Post-Punk + Synthwave, driving bass lines with reverb-drenched guitars, urgent male vocals building to passionate crescendos, atmospheric synth pads, punchy electronic drums, 118 BPM with a relentless motorik groove, mix emphasizes low-end warmth and shimmering highs, style %: 85, weirdness %: 15"
+"Dark Post-Punk + Synthwave, driving bass lines with reverb-drenched guitars, urgent male vocals building to passionate crescendos, atmospheric synth pads, punchy electronic drums, 118 BPM with a relentless motorik groove, mix emphasizes low-end warmth and shimmering highs"
 
 ### Restricted Terms
 Avoid: real artist names, song titles, "kraftwerk", "skank", and other trademarked/sensitive terms. Never reference specific artists/bands/songs in the style prompt.
@@ -118,7 +114,7 @@ Format: `[Instrument Solo]` or `[Instrument]` for featured parts
 You MUST respond with valid JSON in this exact format:
 ```json
 {
-  "style_prompt": "Rich, detailed style description up to 1000 chars with hybrid genres, instrumentation, vocal style, production notes, tempo, and optional advanced params. Do NOT mention real artists or song titles.",
+  "style_prompt": "Rich, detailed style description up to 1000 chars with hybrid genres, instrumentation, vocal style, production notes, and tempo. Do NOT mention real artists or song titles.",
   "lyric_sheet": "[Intro]\\n\\n[Verse 1 | mood: introspective, vocals: soft]\\nLyric lines...\\n\\n[Build]\\n\\n[Chorus | style: anthemic, vocals: layered harmonies]\\nChorus lyrics..."
 }
 ```
@@ -130,8 +126,7 @@ You MUST respond with valid JSON in this exact format:
 - Always use hybrid genre syntax when appropriate
 - Include specific instrumentation, vocal style, and production notes
 - Add tempo/BPM and groove description
-- Consider adding advanced params (style %, weirdness %) for fine control
- - Never reference real artist/band names or song titles; describe the style and instrumentation instead.
+- Never reference real artist/band names or song titles; describe the style and instrumentation instead.
 
 ### Lyric Sheet Enhancement (REQUIRED)
 You MUST actively enhance the lyrics with production markers:
