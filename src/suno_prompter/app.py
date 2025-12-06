@@ -1,6 +1,8 @@
 """Main Streamlit application for the Suno Prompter."""
 
+import json
 import streamlit as st
+import streamlit.components.v1 as components
 from .config import config
 from .utils.logging import get_logger
 from .utils.ideas import pick_random_idea
@@ -45,6 +47,24 @@ def initialize_session_state():
         }
     if "workflow_instance" not in st.session_state:
         st.session_state.workflow_instance = None
+
+
+def render_copy_button(label: str, text: str, key: str):
+    """Render a client-side copy-to-clipboard button with inline feedback."""
+    if not text:
+        st.write("_Nothing to copy yet._")
+        return
+
+    safe_text = json.dumps(text)
+    components.html(
+        f"""
+        <div style="margin: 0.5rem 0;">
+            <button style="padding: 0.4rem 0.8rem; border-radius: 0.4rem; border: 1px solid #e0e0e0; cursor: pointer; background: #f7f7f7;" onclick="navigator.clipboard.writeText({safe_text}); const el = document.getElementById('{key}-copied'); if (el) {{ el.style.display='inline'; el.innerText='Copied!'; setTimeout(()=>{{el.style.display='none';}}, 1800); }}">{label}</button>
+            <span id="{key}-copied" style="display:none; margin-left: 0.5rem; color: #10a37f; font-weight: 600;">Copied!</span>
+        </div>
+        """,
+        height=42,
+    )
 
 
 def validate_configuration():
@@ -380,18 +400,18 @@ def render_suno_output():
     # Style Prompt
     st.markdown("**Style Prompt**")
     st.markdown("Copy this into Suno's style/genre input:")
-    st.code(suno_output.get("style_prompt", ""), language="text")
-    if st.button("📋 Copy Style Prompt", key="copy_style"):
-        st.toast("Style prompt copied to clipboard!")
+    style_prompt = suno_output.get("style_prompt", "")
+    st.code(style_prompt, language="text")
+    render_copy_button("📋 Copy Style Prompt", style_prompt, key="copy_style")
 
     st.markdown("---")
 
     # Formatted Lyrics
     st.markdown("**Formatted Lyric Sheet**")
     st.markdown("Copy this into Suno's lyrics input:")
-    st.code(suno_output.get("lyric_sheet", ""), language="text")
-    if st.button("📋 Copy Lyric Sheet", key="copy_lyrics"):
-        st.toast("Lyric sheet copied to clipboard!")
+    lyric_sheet = suno_output.get("lyric_sheet", "")
+    st.code(lyric_sheet, language="text")
+    render_copy_button("📋 Copy Lyric Sheet", lyric_sheet, key="copy_lyrics")
 
     st.success("✅ Your Suno outputs are ready! Copy them to Suno to generate your song.")
 
