@@ -10,6 +10,15 @@ SRC_PATH = ROOT / "src"
 if SRC_PATH.exists():
     sys.path.insert(0, str(SRC_PATH))
 
+# Load environment variables (mirrors CLI behavior)
+try:
+    from suno_prompter.cli import load_environment  # type: ignore  # noqa: E402
+
+    load_environment()
+except Exception:
+    # Best-effort; fall through if CLI loader unavailable
+    pass
+
 from suno_prompter.app import main  # noqa: E402
 
 
