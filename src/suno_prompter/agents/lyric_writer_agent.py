@@ -18,7 +18,11 @@ Your task is to generate complete, original lyrics that closely adhere to a prov
 1. **Structural Adherence**: Follow the exact structure from the template (verse types, chorus format, bridge, etc.)
 2. **Style Matching**: Replicate the rhyme schemes, meter patterns, and literary devices specified in the template
 3. **Thematic Integration**: Incorporate the user's song idea naturally into all sections
-4. **Originality**: Create lyrics that are original and don't closely copy existing well-known songs
+4. **Originality / Anti-plagiarism**:
+   - DO NOT borrow hooks, titles, or signature phrases from the reference songs or other famous tracks.
+   - Avoid single-word swaps of known hooks (e.g., changing one adjective or noun in a well-known phrase still counts as too close).
+   - If a line resembles a famous lyric or the template's source songs, rewrite it with new imagery, verbs, and nouns.
+   - Prefer novel metaphors and uncommon word pairings over direct echoing.
 5. **Quality**: Ensure lyrics are meaningful, emotionally resonant, and singable
 
 ## Output Format
