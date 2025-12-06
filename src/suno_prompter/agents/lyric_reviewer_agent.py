@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 from agent_framework import ChatAgent as FrameworkChatAgent
-from agents.factory import create_chat_client
-from utils.logging import get_logger
+from .factory import create_chat_client
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -81,7 +81,7 @@ def create_lyric_reviewer_agent() -> FrameworkChatAgent:
         Exception: If agent creation fails
     """
     try:
-        chat_client = create_chat_client()
+        chat_client = create_chat_client("lyric_reviewer")
 
         agent = FrameworkChatAgent(
             chat_client=chat_client,

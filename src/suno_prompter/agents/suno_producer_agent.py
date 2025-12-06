@@ -4,8 +4,8 @@ Meta-tag reference based on https://github.com/stayen/suno-reference
 """
 
 from agent_framework import ChatAgent as FrameworkChatAgent
-from agents.factory import create_chat_client
-from utils.logging import get_logger
+from .factory import create_chat_client
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -172,7 +172,7 @@ def create_suno_producer_agent() -> FrameworkChatAgent:
         Exception: If agent creation fails
     """
     try:
-        chat_client = create_chat_client()
+        chat_client = create_chat_client("suno_producer")
 
         agent = FrameworkChatAgent(
             chat_client=chat_client,

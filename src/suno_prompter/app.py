@@ -1,11 +1,11 @@
 """Main Streamlit application for the Suno Prompter."""
 
 import streamlit as st
-from config import config
-from utils.logging import get_logger
-from utils.ideas import pick_random_idea
-from workflows import LyricWorkflow
-from workflows.lyric_workflow import WorkflowInputs, WorkflowStatus
+from .config import config
+from .utils.logging import get_logger
+from .utils.ideas import pick_random_idea
+from .workflows import LyricWorkflow
+from .workflows.lyric_workflow import WorkflowInputs, WorkflowStatus
 
 logger = get_logger(__name__)
 
@@ -63,10 +63,15 @@ The application requires LLM configuration.
 2. Add your LLM configuration (see .env.example)
 3. Restart the application
 
+**Default provider (one of: openai, azure):**
+```
+LLM_PROVIDER=openai
+```
+
 **For OpenAI API:**
 ```
 OPENAI_API_KEY=your-key-here
-OPENAI_CHAT_MODEL_ID=gpt-4
+OPENAI_CHAT_MODEL_ID=gpt-4o
 ```
 
 **For custom endpoints (Ollama, LM Studio, etc.):**
@@ -74,6 +79,19 @@ OPENAI_CHAT_MODEL_ID=gpt-4
 OPENAI_BASE_URL=http://localhost:11434/v1
 OPENAI_CHAT_MODEL_ID=llama3
 ```
+
+**For Azure OpenAI (deployment-based):**
+```
+LLM_PROVIDER=azure
+AZURE_OPENAI_ENDPOINT=https://<your-resource>.openai.azure.com/
+AZURE_OPENAI_API_KEY=your-key-here
+AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment
+```
+
+**Per-agent overrides (optional):**
+- TEMPLATE_LLM_PROVIDER=azure
+- TEMPLATE_AZURE_DEPLOYMENT_NAME=another-deployment
+- WRITER_CHAT_MODEL_ID=gpt-4o-mini
         """
         st.error(error_message)
         st.stop()
@@ -380,7 +398,7 @@ def render_suno_output():
 
 def run_producer():
     """Execute the producer agent to generate Suno outputs."""
-    from workflows.lyric_workflow import WorkflowState, WorkflowOutputs
+    from .workflows.lyric_workflow import WorkflowState, WorkflowOutputs
 
     # Build current state from session
     current_state = WorkflowState()

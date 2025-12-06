@@ -148,17 +148,27 @@ Use the "Clear Workflow" button in the sidebar to start a new session.
 
 ### Environment Variables
 
-The application supports any OpenAI-compatible API:
+The application supports OpenAI-compatible APIs and Azure OpenAI deployments:
 
-**Required:**
-- `OPENAI_CHAT_MODEL_ID` - The model to use (e.g., `gpt-4`, `llama3`)
+**Provider selection (required):**
+- `LLM_PROVIDER` - `openai` (default) or `azure`
 
-**For OpenAI API:**
+**OpenAI-compatible (default provider):**
+- `OPENAI_CHAT_MODEL_ID` - The model to use (e.g., `gpt-4o`, `llama3`)
 - `OPENAI_API_KEY` - Your OpenAI API key
+- `OPENAI_BASE_URL` - Custom endpoint URL (e.g., `http://localhost:11434/v1`) for self-hosted models
 
-**For Custom Endpoints (Ollama, LM Studio, etc.):**
-- `OPENAI_BASE_URL` - Custom API endpoint URL (e.g., `http://localhost:11434/v1`)
-- `OPENAI_API_KEY` - Optional, depends on your endpoint
+**Azure OpenAI:**
+- `AZURE_OPENAI_ENDPOINT` - Your Azure OpenAI resource endpoint
+- `AZURE_OPENAI_API_KEY` - Azure key
+- `AZURE_OPENAI_DEPLOYMENT_NAME` - Deployment name (used instead of a model ID)
+- `AZURE_OPENAI_MODEL_ID` - Optional, if your deployment exposes it
+
+**Per-agent overrides (optional):**
+- `TEMPLATE_LLM_PROVIDER`, `TEMPLATE_CHAT_MODEL_ID`, `TEMPLATE_AZURE_DEPLOYMENT_NAME`
+- `WRITER_LLM_PROVIDER`, `WRITER_CHAT_MODEL_ID`, `WRITER_AZURE_DEPLOYMENT_NAME`
+- `REVIEWER_LLM_PROVIDER`, `REVIEWER_CHAT_MODEL_ID`, `REVIEWER_AZURE_DEPLOYMENT_NAME`
+- `PRODUCER_LLM_PROVIDER`, `PRODUCER_CHAT_MODEL_ID`, `PRODUCER_AZURE_DEPLOYMENT_NAME`
 
 **Application Settings:**
 - `APP_DEBUG` - Enable debug mode (default: false)

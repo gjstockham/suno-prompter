@@ -7,9 +7,9 @@ from enum import Enum
 from typing import Optional, List
 
 from agent_framework import AgentRunEvent, AgentRunUpdateEvent, WorkflowFailedEvent
-from agents import create_lyric_template_agent, create_lyric_writer_agent, create_lyric_reviewer_agent, create_suno_producer_agent
-from agents.lyric_reviewer_agent import ReviewerFeedback
-from utils.logging import get_logger
+from ..agents import create_lyric_template_agent, create_lyric_writer_agent, create_lyric_reviewer_agent, create_suno_producer_agent
+from ..agents.lyric_reviewer_agent import ReviewerFeedback
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
