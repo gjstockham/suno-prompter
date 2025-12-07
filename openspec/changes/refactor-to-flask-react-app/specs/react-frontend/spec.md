@@ -1,30 +1,41 @@
 ## ADDED Requirements
 
-### Requirement: Collect Prompt Inputs
-The frontend SHALL present a form to capture artists, songs, guidance, optional pasted lyrics, a required song idea/title, and a toggle to request Suno producer output.
+### Requirement: Stage Workflow Inputs
+The frontend SHALL guide users through staged inputs: artist/song references first, optional lyrics fallback, then idea/title, and finally production guidance.
 
-#### Scenario: Form available on load
+#### Scenario: Reference-first entry
 - **WHEN** the SPA loads
-- **THEN** the user can enter artists, songs, guidance, lyrics, idea/title, producer guidance, and toggle producer output before submitting.
+- **THEN** only the artist/song/guidance step is actionable
+- **AND** the UI explains that lyrics will be requested only if the reference search fails.
 
-#### Scenario: Client-side validation
-- **WHEN** the user submits without an idea/title or without any reference fields (artists, songs, guidance, lyrics)
-- **THEN** the UI blocks the submission and shows an inline error explaining what is missing.
+#### Scenario: Lyrics fallback when needed
+- **WHEN** the template request returns a `needs_lyrics` status
+- **THEN** the UI prompts for pasted lyrics
+- **AND** resubmits that text to build the template before unlocking later steps.
 
-### Requirement: Call Backend API
-The frontend SHALL invoke `POST /api/generate-prompt` with the captured fields, show progress, and surface backend errors.
+#### Scenario: Idea and production steps gated
+- **WHEN** a template is ready
+- **THEN** the UI unlocks the idea/title step
+- **AND** only after lyrics are generated does it show the production guidance step with an option to skip the producer.
 
-#### Scenario: Successful submission
-- **WHEN** the user submits a valid form
-- **THEN** the UI shows a loading state, sends the JSON payload to `/api/generate-prompt`, and clears the loading state when the response returns.
+### Requirement: Call Staged Backend API
+The frontend SHALL call `/api/generate-template`, `/api/generate-lyrics`, and `/api/generate-production` in sequence while surfacing progress and errors.
 
-#### Scenario: Backend errors surfaced
-- **WHEN** the backend responds with an error (e.g., configuration or validation failure)
-- **THEN** the UI displays a clear error message without crashing or leaving the loading indicator active.
+#### Scenario: Template request with status handling
+- **WHEN** the user submits artist/song references
+- **THEN** the UI calls `/api/generate-template`
+- **AND** if the response status is `needs_lyrics` the UI shows the lyrics fallback instead of progressing
+- **AND** backend errors are shown inline while clearing the loading state.
+
+#### Scenario: Lyrics and production requests
+- **WHEN** a template exists and the user submits an idea/title
+- **THEN** the UI calls `/api/generate-lyrics` and stores the returned template, lyrics, and feedback
+- **AND WHEN** the user opts into production, the UI calls `/api/generate-production` with lyrics, template, and producer guidance and surfaces any backend error inline.
 
 ### Requirement: Present Workflow Results
-The frontend SHALL render the template, lyrics, reviewer feedback iterations, and Suno outputs returned by the backend.
+The frontend SHALL render the template, lyrics, reviewer feedback iterations, and Suno outputs returned by each stage.
 
-#### Scenario: Show workflow output
-- **WHEN** the API call succeeds
-- **THEN** the UI displays the returned template, lyrics, iteration feedback (including satisfied/unsatisfied state), and, when requested, the Suno style prompt and lyric sheet.
+#### Scenario: Progressive results display
+- **WHEN** the template stage succeeds
+- **THEN** the blueprint appears even before lyrics are generated
+- **AND** lyrics, feedback iterations, and Suno outputs appear as their respective stages complete.

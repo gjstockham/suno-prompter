@@ -22,6 +22,7 @@ class WorkflowStatus(Enum):
 
     IDLE = "idle"
     RUNNING = "running"
+    NEEDS_LYRICS = "needs_lyrics"
     COMPLETE = "complete"
     ERROR = "error"
 
@@ -90,60 +91,111 @@ class LyricWorkflow:
             raise
 
     def run(self, inputs: WorkflowInputs) -> WorkflowState:
-        """
-        Run the full pipeline with the given inputs.
+        """Run the pipeline end-to-end (template -> lyrics)."""
+        template_state = self.generate_template(inputs)
+        if template_state.status != WorkflowStatus.COMPLETE:
+            return template_state
 
-        Args:
-            inputs: WorkflowInputs containing artists, songs, guidance, and idea
+        lyrics_state = self.generate_lyrics(inputs, template_state.outputs.template or "")
+        lyrics_state.outputs.template = template_state.outputs.template
+        return lyrics_state
 
-        Returns:
-            WorkflowState containing all outputs and final status
-        """
+    def generate_template(self, inputs: WorkflowInputs) -> WorkflowState:
+        """Run only the template agent so the UI can gate on the reference quality."""
         state = WorkflowState(inputs=inputs, status=WorkflowStatus.RUNNING)
 
+        reference = self._build_reference(inputs)
+        if not reference.strip():
+            state.status = WorkflowStatus.ERROR
+            state.error = "Please provide at least one of: Artist(s), Song(s), lyrics, or other guidance."
+            return state
+
+        logger.info("Generating style template from references...")
+        prompt = f"Please analyze the following and generate a lyric blueprint:\n\n{reference}"
+        loop = self._get_event_loop()
+
         try:
-            # Step 1: Generate template from reference
-            logger.info("Step 1: Generating style template...")
-            reference = self._build_reference(inputs)
-
-            if not reference.strip():
-                state.status = WorkflowStatus.ERROR
-                state.error = "Please provide at least one of: Artist(s), Song(s), or guidance"
-                return state
-
-            prompt = f"Please analyze the following and generate a lyric blueprint:\n\n{reference}"
-            loop = self._get_event_loop()
-
             if loop.is_running():
                 import nest_asyncio
                 nest_asyncio.apply()
                 template = loop.run_until_complete(self._run_agent_async(self.lyric_template_agent, prompt))
             else:
                 template = loop.run_until_complete(self._run_agent_async(self.lyric_template_agent, prompt))
+        except Exception as exc:  # pragma: no cover - agent failure paths are runtime dependent
+            logger.error("Template generation failed: %s", exc)
+            state.status = WorkflowStatus.ERROR
+            state.error = "Template agent failed. Try again with lyrics pasted."
+            return state
 
-            state.outputs.template = template
-            state.outputs.idea = inputs.idea
+        state.outputs.template = template
+        state.outputs.idea = inputs.idea
 
-            # Step 2: Generate lyrics with writer agent (iterating with reviewer)
-            logger.info("Step 2: Generating and reviewing lyrics...")
+        if self._template_missing(template):
+            state.status = WorkflowStatus.NEEDS_LYRICS if not inputs.lyrics.strip() else WorkflowStatus.ERROR
+            state.error = (
+                "Could not build a template from that artist/song combo. Paste exact lyrics to continue."
+                if state.status == WorkflowStatus.NEEDS_LYRICS
+                else "Template agent returned an empty response."
+            )
+            return state
+
+        state.status = WorkflowStatus.COMPLETE
+        return state
+
+    def generate_lyrics(self, inputs: WorkflowInputs, template: str) -> WorkflowState:
+        """Run the lyric writer + reviewer loop using an existing template."""
+        state = WorkflowState(
+            inputs=inputs,
+            outputs=WorkflowOutputs(template=template, idea=inputs.idea),
+            status=WorkflowStatus.RUNNING,
+        )
+
+        if not template.strip():
+            state.status = WorkflowStatus.ERROR
+            state.error = "Template is required before generating lyrics."
+            return state
+
+        if not inputs.idea.strip():
+            state.status = WorkflowStatus.ERROR
+            state.error = "Add a song idea or title before generating lyrics."
+            return state
+
+        loop = self._get_event_loop()
+
+        try:
+            logger.info("Generating and reviewing lyrics from template + idea...")
             forbidden_phrases = self._build_forbidden_phrases(inputs)
-            logger.debug(f"Forbidden phrases ({len(forbidden_phrases)}): {forbidden_phrases}")
+            logger.debug("Forbidden phrases (%s): %s", len(forbidden_phrases), forbidden_phrases)
             lyrics, feedback_history = loop.run_until_complete(
                 self._generate_and_review_lyrics(template, inputs.idea, forbidden_phrases)
             )
-
             state.outputs.lyrics = lyrics
             state.outputs.feedback_history = feedback_history
-
             state.status = WorkflowStatus.COMPLETE
-            logger.info("Workflow completed successfully")
-
-        except Exception as e:
-            logger.error(f"Workflow error: {e}")
+        except Exception as exc:  # pragma: no cover - agent failure paths are runtime dependent
+            logger.error("Lyric generation failed: %s", exc)
             state.status = WorkflowStatus.ERROR
-            state.error = str(e)
+            state.error = "Lyric writer or reviewer failed. Try again."
 
         return state
+
+    def _template_missing(self, template: Optional[str]) -> bool:
+        """Heuristically detect when the template agent returned nothing useful."""
+        if not template:
+            return True
+        cleaned = template.strip()
+        if not cleaned:
+            return True
+        return cleaned.lower() == "no output generated" or len(cleaned) < 40
+
+    # Legacy end-to-end runner kept for compatibility. Sequential stages now live in
+    # generate_template and generate_lyrics for the new UI flow.
+    def run_old(self, inputs: WorkflowInputs) -> WorkflowState:  # pragma: no cover - kept for reference
+        """Compatibility wrapper for the previous single-shot flow."""
+        template_state = self.generate_template(inputs)
+        if template_state.status != WorkflowStatus.COMPLETE:
+            return template_state
+        return self.generate_lyrics(inputs, template_state.outputs.template or "")
 
     async def _generate_and_review_lyrics(self, template: str, idea: str, forbidden_phrases: Optional[List[str]] = None) -> tuple:
         """
