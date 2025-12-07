@@ -136,8 +136,9 @@ class LyricWorkflow:
         state.outputs.template = template
         state.outputs.idea = inputs.idea
 
-        if self._template_missing(template):
-            state.status = WorkflowStatus.NEEDS_LYRICS if not inputs.lyrics.strip() else WorkflowStatus.ERROR
+        if self._template_missing(template) or self._template_requires_lyrics(template, inputs):
+            needs_lyrics = not inputs.lyrics.strip()
+            state.status = WorkflowStatus.NEEDS_LYRICS if needs_lyrics else WorkflowStatus.ERROR
             state.error = (
                 "Could not build a template from that artist/song combo. Paste exact lyrics to continue."
                 if state.status == WorkflowStatus.NEEDS_LYRICS
@@ -193,6 +194,25 @@ class LyricWorkflow:
         if not cleaned:
             return True
         return cleaned.lower() == "no output generated" or len(cleaned) < 40
+
+    def _template_requires_lyrics(self, template: str, inputs: WorkflowInputs) -> bool:
+        """Detect cases where the template is too vague and should trigger a lyrics request."""
+        if inputs.lyrics.strip():
+            return False
+        lowered = template.lower()
+        failure_markers = [
+            "could not find",
+            "couldn't find",
+            "no lyrics",
+            "lyrics not found",
+            "not enough reference",
+            "insufficient reference",
+        ]
+        if any(marker in lowered for marker in failure_markers):
+            return True
+        # If we only had artist/song and got back a very short template, treat it as insufficient.
+        reference_only = bool(inputs.songs.strip() or inputs.artists.strip()) and not inputs.guidance.strip()
+        return reference_only and len(template.strip()) < 120
 
     # Legacy end-to-end runner kept for compatibility. Sequential stages now live in
     # generate_template and generate_lyrics for the new UI flow.
