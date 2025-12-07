@@ -207,6 +207,11 @@ class LyricWorkflow:
             "lyrics not found",
             "not enough reference",
             "insufficient reference",
+            "don't have the exact lyrics",
+            "cannot provide lyrics",
+            "cannot locate lyrics",
+            "without the lyrics",
+            "i can provide a detailed analysis",
         ]
         if any(marker in lowered for marker in failure_markers):
             return True
