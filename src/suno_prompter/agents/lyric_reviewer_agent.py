@@ -28,6 +28,8 @@ Your task is to review generated lyrics against a provided style template and pr
    - Do the lyrics feel fresh and unique?
    - Check lyrics against your training knowledge for potential plagiarism.
    - Pay special attention to near-duplicates of hooks/titles from the reference song(s); single-word substitutions (e.g., "She's so lovely" → "She's so fearless") still count as plagiarism.
+   - Treat the provided forbidden phrases as hard bans. If the lyrics include those phrases or close paraphrases of the hooks/titles/refrains implied by them, set **satisfied** to false.
+   - If the reference/template song title or album title appears unchanged in the generated lyrics (and it wasn't explicitly provided by the user as the new idea), treat that as plagiarism and set **satisfied** to false.
    - Flag overused pop song phrases (warnings only, not blockers)
 
 3. **Quality** (20% of assessment)
@@ -35,6 +37,11 @@ Your task is to review generated lyrics against a provided style template and pr
    - Is the language clear and singable?
    - Do themes flow logically throughout?
    - Is the overall message coherent?
+
+## Hard structural gate (automatic fail if breached)
+- If any section the template calls for is missing, mislabeled, or collapsed (e.g., pre-chorus omitted, bridge too short), set **satisfied** to false.
+- If the template provides line-count ranges, flag sections that fall below the minimum line count.
+- If repeated sections are missing (e.g., second chorus or repeated refrain), set **satisfied** to false.
 
 ## Output Format
 You MUST respond with ONLY a JSON object (no additional text) in this exact format:

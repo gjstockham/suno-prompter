@@ -30,6 +30,7 @@ def initialize_session_state():
                 "artists": "",
                 "songs": "",
                 "guidance": "",
+                "lyrics": "",
                 "idea": "",
                 "producer_guidance": "",
             },
@@ -190,6 +191,14 @@ def render_workflow_form():
         help="Enter specific songs to analyze",
     )
 
+    lyrics = st.text_area(
+        "Or paste full lyrics (optional, overrides recall)",
+        value=st.session_state.workflow["inputs"]["lyrics"],
+        placeholder="Paste lyrics here if you want the template built from exact text...",
+        help="If provided, the blueprint will analyze these lyrics directly instead of recalling them.",
+        height=140,
+    )
+
     guidance = st.text_area(
         "Other guidance",
         value=st.session_state.workflow["inputs"]["guidance"],
@@ -201,6 +210,7 @@ def render_workflow_form():
     # Update session state with current values
     st.session_state.workflow["inputs"]["artists"] = artists
     st.session_state.workflow["inputs"]["songs"] = songs
+    st.session_state.workflow["inputs"]["lyrics"] = lyrics
     st.session_state.workflow["inputs"]["guidance"] = guidance
 
     # Generate button
@@ -426,6 +436,7 @@ def run_producer():
     current_state.inputs.artists = st.session_state.workflow["inputs"]["artists"]
     current_state.inputs.songs = st.session_state.workflow["inputs"]["songs"]
     current_state.inputs.guidance = st.session_state.workflow["inputs"]["guidance"]
+    current_state.inputs.lyrics = st.session_state.workflow["inputs"]["lyrics"]
     current_state.inputs.idea = st.session_state.workflow["inputs"]["idea"]
     current_state.inputs.producer_guidance = st.session_state.workflow["inputs"]["producer_guidance"]
     current_state.outputs.template = st.session_state.workflow["outputs"]["template"]
@@ -457,12 +468,13 @@ def run_workflow():
     inputs = WorkflowInputs(
         artists=st.session_state.workflow["inputs"]["artists"],
         songs=st.session_state.workflow["inputs"]["songs"],
+        lyrics=st.session_state.workflow["inputs"]["lyrics"],
         guidance=st.session_state.workflow["inputs"]["guidance"],
     )
 
     # Validate at least one input is provided
-    if not any([inputs.artists.strip(), inputs.songs.strip(), inputs.guidance.strip()]):
-        st.error("Please provide at least one of: Artist(s), Song(s), or guidance")
+    if not any([inputs.artists.strip(), inputs.songs.strip(), inputs.guidance.strip(), inputs.lyrics.strip()]):
+        st.error("Please provide at least one of: Artist(s), Song(s), lyrics, or guidance")
         return
 
     # Show progress
@@ -493,6 +505,7 @@ def run_workflow_with_idea():
     inputs = WorkflowInputs(
         artists=st.session_state.workflow["inputs"]["artists"],
         songs=st.session_state.workflow["inputs"]["songs"],
+        lyrics=st.session_state.workflow["inputs"]["lyrics"],
         guidance=st.session_state.workflow["inputs"]["guidance"],
         idea=st.session_state.workflow["inputs"]["idea"],
     )

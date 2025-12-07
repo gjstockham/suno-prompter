@@ -4,7 +4,7 @@ import asyncio
 import json
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 from agent_framework import AgentRunEvent, AgentRunUpdateEvent, WorkflowFailedEvent
 from ..agents import create_lyric_template_agent, create_lyric_writer_agent, create_lyric_reviewer_agent, create_suno_producer_agent
@@ -42,6 +42,7 @@ class WorkflowInputs:
     songs: str = ""
     guidance: str = ""
     idea: str = ""  # Song idea or title
+    lyrics: str = ""  # Optional pasted reference lyrics
     producer_guidance: str = ""  # Production style guidance for Suno output
 
 
@@ -125,8 +126,10 @@ class LyricWorkflow:
 
             # Step 2: Generate lyrics with writer agent (iterating with reviewer)
             logger.info("Step 2: Generating and reviewing lyrics...")
+            forbidden_phrases = self._build_forbidden_phrases(inputs)
+            logger.debug(f"Forbidden phrases ({len(forbidden_phrases)}): {forbidden_phrases}")
             lyrics, feedback_history = loop.run_until_complete(
-                self._generate_and_review_lyrics(template, inputs.idea)
+                self._generate_and_review_lyrics(template, inputs.idea, forbidden_phrases)
             )
 
             state.outputs.lyrics = lyrics
@@ -142,13 +145,14 @@ class LyricWorkflow:
 
         return state
 
-    async def _generate_and_review_lyrics(self, template: str, idea: str) -> tuple:
+    async def _generate_and_review_lyrics(self, template: str, idea: str, forbidden_phrases: Optional[List[str]] = None) -> tuple:
         """
         Generate lyrics and iterate with reviewer until satisfied or max iterations.
 
         Args:
             template: The style template
             idea: The song idea/title
+            forbidden_phrases: Titles/phrases from the references that must not appear in new lyrics
 
         Returns:
             tuple: (final_lyrics, feedback_history)
@@ -162,20 +166,44 @@ class LyricWorkflow:
             iteration += 1
             logger.info(f"Iteration {iteration}/{MAX_ITERATIONS}")
 
-            # Generate lyrics
+        # Generate lyrics
             if iteration == 1:
                 # First iteration: just idea
-                writer_prompt = f"Style Template:\n{template}\n\nSong Idea/Title: {idea}\n\nGenerate complete lyrics matching this template."
+                writer_prompt = (
+                    "Style Template (analysis only; do NOT reuse exact titles/phrases):\n"
+                    f"{template}\n\n"
+                    f"Song Idea/Title: {idea}\n"
+                    f"Forbidden titles/phrases to avoid entirely (do not paraphrase): {', '.join(forbidden_phrases) if forbidden_phrases else 'None explicitly provided; still avoid lifting hooks or album titles from the template.'}\n\n"
+                    "Generate complete lyrics matching this template with fresh wording."
+                )
             else:
                 # Subsequent iterations: include feedback
-                last_feedback = feedback_history[-1]["feedback"]
-                writer_prompt = f"Style Template:\n{template}\n\nSong Idea/Title: {idea}\n\nRevision Feedback:\n{last_feedback['revision_suggestions']}\n\nGenerate revised lyrics incorporating the feedback above."
+                if not feedback_history:
+                    logger.warning("No prior feedback available for revision; reverting to first-pass prompt.")
+                    last_feedback = {"revision_suggestions": "Rewrite with fresh imagery; avoid any repeated hooks/titles."}
+                else:
+                    last_feedback = feedback_history[-1]["feedback"]
+                writer_prompt = (
+                    "Style Template (analysis only; do NOT reuse exact titles/phrases):\n"
+                    f"{template}\n\n"
+                    f"Song Idea/Title: {idea}\n"
+                    f"Forbidden titles/phrases to avoid entirely (do not paraphrase): {', '.join(forbidden_phrases) if forbidden_phrases else 'None explicitly provided; still avoid lifting hooks or album titles from the template.'}\n\n"
+                f"Revision Feedback:\n{last_feedback['revision_suggestions']}\n\n"
+                "Generate revised lyrics incorporating the feedback above without reusing any reference hooks."
+            )
 
+            logger.debug(f"Writer prompt (len={len(writer_prompt)}): {writer_prompt[:600]}")
             current_lyrics = await self._run_agent_async(self.lyric_writer_agent, writer_prompt)
             logger.info(f"Generated lyrics ({len(current_lyrics)} chars)")
 
             # Review lyrics
-            reviewer_prompt = f"Style Template:\n{template}\n\nGenerated Lyrics:\n{current_lyrics}\n\nProvide feedback in JSON format."
+            reviewer_prompt = (
+                f"Style Template:\n{template}\n\n"
+                f"Generated Lyrics:\n{current_lyrics}\n\n"
+                f"Forbidden titles/phrases that must NOT appear (if present, set satisfied=false and flag plagiarism): {', '.join(forbidden_phrases) if forbidden_phrases else 'Reference song/album titles and hooks implied by the template.'}\n\n"
+                "Provide feedback in JSON format."
+            )
+            logger.debug(f"Reviewer prompt (len={len(reviewer_prompt)}): {reviewer_prompt[:600]}")
             feedback_json = await self._run_agent_async(self.lyric_reviewer_agent, reviewer_prompt)
 
             # Parse feedback
@@ -282,7 +310,66 @@ class LyricWorkflow:
             parts.append(f"Song(s): {inputs.songs.strip()}")
         if inputs.guidance.strip():
             parts.append(f"Additional guidance: {inputs.guidance.strip()}")
+        if inputs.lyrics.strip():
+            parts.append("Provided Lyrics (authoritative reference for analysis only; do NOT reuse exact phrases):")
+            parts.append(inputs.lyrics.strip())
         return "\n".join(parts)
+
+    def _build_forbidden_phrases(self, inputs: WorkflowInputs) -> List[str]:
+        """Collect reference titles/phrases that should never appear in generated lyrics."""
+        phrases: List[str] = []
+        if inputs.songs.strip():
+            phrases.extend([s.strip() for s in inputs.songs.split(",") if s.strip()])
+        if inputs.artists.strip():
+            phrases.extend([a.strip() for a in inputs.artists.split(",") if a.strip()])
+        # Explicit lyrics reference should not be quoted verbatim
+        if inputs.lyrics.strip():
+            phrases.append("Any direct lines or titles from the provided lyrics")
+            phrases.extend(self._extract_forbidden_phrases_from_lyrics(inputs.lyrics))
+        # Deduplicate while preserving order
+        seen = set()
+        deduped = []
+        for p in phrases:
+            key = p.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(p)
+        return deduped
+
+    def _extract_forbidden_phrases_from_lyrics(self, lyrics: str, max_phrases: int = 15) -> List[str]:
+        """
+        Heuristically extract recurring n-grams from provided lyrics to treat as forbidden hooks.
+
+        We look for 3-6 word n-grams that appear at least twice and return the top ones.
+        """
+        import re
+        from collections import Counter
+
+        # Normalize and tokenize
+        tokens = re.findall(r"[a-zA-Z']+", lyrics.lower())
+        if not tokens:
+            return []
+
+        ngram_counts: Counter[Tuple[str, ...]] = Counter()
+        for n in range(3, 7):  # 3-6 grams
+            for i in range(len(tokens) - n + 1):
+                ngram = tuple(tokens[i : i + n])
+                ngram_counts[ngram] += 1
+
+        # Keep n-grams that repeat
+        repeated = [(ng, c) for ng, c in ngram_counts.items() if c >= 2]
+        repeated.sort(key=lambda x: (-x[1], -len(x[0])))  # frequency desc, then length desc
+
+        phrases: List[str] = []
+        for ng, count in repeated:
+            phrase = " ".join(ng)
+            if phrase not in phrases:
+                phrases.append(phrase)
+            if len(phrases) >= max_phrases:
+                break
+
+        return phrases
 
     def run_producer(self, state: WorkflowState) -> WorkflowState:
         """

@@ -20,10 +20,18 @@ Your task is to generate complete, original lyrics that closely adhere to a prov
 3. **Thematic Integration**: Incorporate the user's song idea naturally into all sections
 4. **Originality / Anti-plagiarism**:
    - DO NOT borrow hooks, titles, or signature phrases from the reference songs or other famous tracks.
+   - Do NOT repeat the reference song/album titles or refrain phrases from the template unless the user explicitly provided that exact title as the new song idea.
    - Avoid single-word swaps of known hooks (e.g., changing one adjective or noun in a well-known phrase still counts as too close).
+   - Treat any supplied forbidden phrases or motifs as hard bans—do not echo or lightly paraphrase them. Swap to completely different imagery and verbs.
    - If a line resembles a famous lyric or the template's source songs, rewrite it with new imagery, verbs, and nouns.
    - Prefer novel metaphors and uncommon word pairings over direct echoing.
 5. **Quality**: Ensure lyrics are meaningful, emotionally resonant, and singable
+
+## Pre-Write Planning (do this silently before drafting)
+- Extract an ordered section list from the template (e.g., Prologue → Verse 1 → Pre-chorus → Chorus → Verse 2 → Pre-chorus → Chorus → Bridge/Soliloquy → Instrumental tag → Final Chorus/Outro).
+- Honor any line-count expectations in the template (e.g., “6–10 lines” means at least 6 lines, no fewer than the lower bound).
+- If the template references repeated sections (like multiple choruses or pre-choruses), include every pass; do not collapse or omit them.
+- Keep the bracketed section labels in the final output.
 
 ## Output Format
 Generate complete lyrics organized into clearly labeled sections (Verse 1, Chorus, Verse 2, Bridge, Outro, etc.).
