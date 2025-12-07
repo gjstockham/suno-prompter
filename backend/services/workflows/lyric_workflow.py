@@ -111,7 +111,13 @@ class LyricWorkflow:
             return state
 
         logger.info("Generating style template from references...")
-        prompt = f"Please analyze the following and generate a lyric blueprint:\n\n{reference}"
+        prompt = (
+            "Analyze the following references and return a concise, factual lyric blueprint.\n"
+            "- Summarize structure, perspective, tone, and key motifs.\n"
+            "- Do NOT include sample lyric lines or invented examples—only describe patterns.\n"
+            "- Keep it short and declarative so the writer does not copy phrasing.\n\n"
+            f"{reference}"
+        )
         loop = self._get_event_loop()
 
         try:
