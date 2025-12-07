@@ -215,6 +215,30 @@ class LyricWorkflow:
         ]
         if any(marker in lowered for marker in failure_markers):
             return True
+
+        # If the response leans heavily on hedging words, assume it guessed and ask for lyrics
+        hedging_words = [
+            "typically",
+            "generally",
+            "commonly",
+            "usually",
+            "often",
+            "may",
+            "might",
+            "tends to",
+            "tend to",
+            "varied",
+            "varies",
+            "vary",
+            "blend",
+            "mix",
+            "mixture",
+            "overview",
+        ]
+        hedge_hits = sum(lowered.count(word) for word in hedging_words)
+        if hedge_hits >= 2:
+            return True
+
         # If we only had artist/song and got back a very short template, treat it as insufficient.
         reference_only = bool(inputs.songs.strip() or inputs.artists.strip()) and not inputs.guidance.strip()
         return reference_only and len(template.strip()) < 120
