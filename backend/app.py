@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Iterable
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 
 logging.basicConfig(level=logging.INFO)
@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
+DIST_DIR = BASE_DIR / "frontend" / "dist"
 
 
 def load_environment(env_paths: Iterable[Path] | None = None) -> None:
@@ -56,7 +57,8 @@ def create_app() -> Flask:
 
     app = Flask(
         __name__,
-        static_folder=None,  # Set in integration phase when serving frontend assets
+        static_folder=str(DIST_DIR),
+        static_url_path="/",
     )
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
@@ -68,6 +70,24 @@ def create_app() -> Flask:
     from backend.api.prompter import api_bp
 
     app.register_blueprint(api_bp)
+
+    if DIST_DIR.exists():
+        logger.info("Serving frontend assets from %s", DIST_DIR)
+
+        @app.route("/", defaults={"path": ""})
+        @app.route("/<path:path>")
+        def serve_frontend(path: str):
+            """Serve the built React SPA."""
+            if path.startswith("api/"):
+                return jsonify({"error": "Not found"}), 404
+
+            target = DIST_DIR / path
+            if path and target.exists():
+                return send_from_directory(app.static_folder, path)  # type: ignore[arg-type]
+            return send_from_directory(app.static_folder, "index.html")  # type: ignore[arg-type]
+    else:
+        logger.warning("Frontend build not found at %s; running API-only.", DIST_DIR)
+
     return app
 
 
