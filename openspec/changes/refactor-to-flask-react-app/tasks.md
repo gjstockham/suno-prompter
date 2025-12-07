@@ -24,6 +24,7 @@ This list breaks down the work required to refactor the application to a Flask/R
 - [x] 3.2. Create a multi-stage `Dockerfile`.
 - [x] 3.3. Build and run the container locally to verify that the application works as expected. (Blocked in this environment: Docker CLI not available.)
 - [x] 3.4. Add a `docker-compose.yml` for easier local development.
+- [ ] 3.5. Re-run `docker build` / `docker-compose up --build` on a host with Docker available after restart to validate the image end-to-end.
 
 ## Phase 4: Cleanup and Documentation
 
