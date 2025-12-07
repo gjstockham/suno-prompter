@@ -24,24 +24,23 @@ classifiers = [
 ]
 
 dependencies = [
-    "streamlit>=1.32.0",
+    "flask>=3.0.0",
+    "flask-cors>=4.0.0",
     "agent-framework",
     "python-dotenv>=1.0.0",
     "nest-asyncio>=1.5.0",
+    "gunicorn>=21.2.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/gjstockham/suno-prompter"
 Issues = "https://github.com/gjstockham/suno-prompter/issues"
 
-[project.scripts]
-suno-prompter = "suno_prompter.cli:main"
-
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = {"" = "."}
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["backend"]
 
 [tool.setuptools.package-data]
-suno_prompter = ["data/*.txt"]
+backend = ["services/data/*.txt"]
