@@ -54,6 +54,8 @@ export type ProductionRequestPayload = Pick<
   'artists' | 'songs' | 'guidance' | 'lyrics' | 'idea' | 'producer_guidance'
 > & { template: string }
 
+export type ShuffleIdeaResponse = { idea: string }
+
 async function postJson<T>(path: string, payload: Record<string, unknown>): Promise<T> {
   const response = await fetch(path, {
     method: 'POST',
@@ -86,4 +88,16 @@ export function requestLyrics(payload: LyricsRequestPayload): Promise<PromptResp
 
 export function requestProduction(payload: ProductionRequestPayload): Promise<PromptResponse> {
   return postJson<PromptResponse>('/api/generate-production', payload)
+}
+
+export async function shuffleIdea(): Promise<ShuffleIdeaResponse> {
+  const response = await fetch('/api/shuffle-idea')
+  const data = await response.json()
+
+  if (!response.ok || !data?.idea) {
+    const message = data?.error || 'Unable to shuffle an idea right now.'
+    throw new Error(message)
+  }
+
+  return data as ShuffleIdeaResponse
 }

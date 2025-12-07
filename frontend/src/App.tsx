@@ -8,6 +8,7 @@ import {
   requestLyrics,
   requestProduction,
   requestTemplate,
+  shuffleIdea,
 } from './services/api'
 
 type Stage = 'references' | 'lyricsFallback' | 'idea' | 'producer' | 'complete'
@@ -41,6 +42,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [statusHint, setStatusHint] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isShuffling, setIsShuffling] = useState(false)
 
   useEffect(() => {
     const active = document.querySelector('.step-card.active')
@@ -235,6 +237,19 @@ function App() {
       setReferences((prev) => ({ ...prev, [field]: event.target.value }))
     }
 
+  const handleShuffleIdea = async () => {
+    setError(null)
+    setIsShuffling(true)
+    try {
+      const { idea: randomIdea } = await shuffleIdea()
+      setIdea(randomIdea)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to shuffle an idea.')
+    } finally {
+      setIsShuffling(false)
+    }
+  }
+
   return (
     <div className="page">
       <div className="shell">
@@ -385,9 +400,19 @@ function App() {
                   </label>
 
                   <div className="actions">
-                    <button className="primary" type="submit" disabled={isSubmitting}>
-                      {isSubmitting && stage === 'idea' ? 'Writing…' : 'Generate lyrics'}
-                    </button>
+                    <div className="button-row">
+                      <button
+                        className="ghost"
+                        type="button"
+                        onClick={handleShuffleIdea}
+                        disabled={isShuffling || isSubmitting}
+                      >
+                        {isShuffling ? 'Shuffling…' : 'Shuffle idea'}
+                      </button>
+                      <button className="primary" type="submit" disabled={isSubmitting}>
+                        {isSubmitting && stage === 'idea' ? 'Writing…' : 'Generate lyrics'}
+                      </button>
+                    </div>
                     <span className="muted">We&apos;ll loop writer + reviewer until the lyrics stick.</span>
                   </div>
                 </form>

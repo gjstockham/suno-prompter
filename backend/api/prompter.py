@@ -14,6 +14,7 @@ from backend.services.workflows import (
     WorkflowState,
     WorkflowStatus,
 )
+from backend.services.utils.ideas import pick_random_idea
 
 api_bp = Blueprint("prompter_api", __name__, url_prefix="/api")
 logger = get_logger(__name__)
@@ -258,3 +259,16 @@ def generate_production():
     state = workflow.run_producer(state)
     status_code = 200 if state.status != WorkflowStatus.ERROR else 400
     return jsonify(_serialize_state(state)), status_code
+
+
+@api_bp.route("/shuffle-idea", methods=["GET"])
+def shuffle_idea():
+    """Return a random starter idea from the backend idea bank."""
+    try:
+        idea = pick_random_idea()
+        return jsonify({"idea": idea}), 200
+    except FileNotFoundError:
+        return jsonify({"error": "Idea bank missing"}), 500
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        logger.exception("Failed to pick random idea")
+        return jsonify({"error": "Unable to pick idea", "details": str(exc)}), 500

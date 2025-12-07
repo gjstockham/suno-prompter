@@ -13,9 +13,9 @@ The frontend SHALL guide users through staged inputs: artist/song references fir
 - **THEN** the UI prompts for pasted lyrics
 - **AND** resubmits that text to build the template before unlocking later steps.
 
-#### Scenario: Idea and production steps gated
+#### Scenario: Idea and production steps gated with shuffle
 - **WHEN** a template is ready
-- **THEN** the UI unlocks the idea/title step
+- **THEN** the UI unlocks the idea/title step with a shuffle button that pulls a random idea from the backend
 - **AND** only after lyrics are generated does it show the production guidance step with an option to skip the producer.
 
 ### Requirement: Call Staged Backend API
@@ -31,6 +31,11 @@ The frontend SHALL call `/api/generate-template`, `/api/generate-lyrics`, and `/
 - **WHEN** a template exists and the user submits an idea/title
 - **THEN** the UI calls `/api/generate-lyrics` and stores the returned template, lyrics, and feedback
 - **AND WHEN** the user opts into production, the UI calls `/api/generate-production` with lyrics, template, and producer guidance and surfaces any backend error inline.
+
+#### Scenario: Shuffle idea via backend
+- **WHEN** the user clicks the shuffle button on the idea step
+- **THEN** the UI calls `/api/shuffle-idea` to fetch a random idea from the backend idea bank
+- **AND** populates the idea field without requiring a rebuild to add new ideas.
 
 ### Requirement: Present Workflow Results
 The frontend SHALL render the template, lyrics, reviewer feedback iterations, and Suno outputs returned by each stage.

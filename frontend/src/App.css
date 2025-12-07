@@ -259,6 +259,11 @@ button.ghost {
   border-color: var(--border);
 }
 
+.button-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .callout {
   margin-top: 0.75rem;
   padding: 0.9rem 1rem;
