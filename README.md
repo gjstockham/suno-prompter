@@ -148,17 +148,27 @@ Use the "Clear Workflow" button in the sidebar to start a new session.
 
 ### Environment Variables
 
-The application supports any OpenAI-compatible API:
+The application supports OpenAI-compatible APIs and Azure OpenAI deployments:
 
-**Required:**
-- `OPENAI_CHAT_MODEL_ID` - The model to use (e.g., `gpt-4`, `llama3`)
+**Provider selection (required):**
+- `LLM_PROVIDER` - `openai` (default) or `azure`
 
-**For OpenAI API:**
+**OpenAI-compatible (default provider):**
+- `OPENAI_CHAT_MODEL_ID` - The model to use (e.g., `gpt-4o`, `llama3`)
 - `OPENAI_API_KEY` - Your OpenAI API key
+- `OPENAI_BASE_URL` - Custom endpoint URL (e.g., `http://localhost:11434/v1`) for self-hosted models
 
-**For Custom Endpoints (Ollama, LM Studio, etc.):**
-- `OPENAI_BASE_URL` - Custom API endpoint URL (e.g., `http://localhost:11434/v1`)
-- `OPENAI_API_KEY` - Optional, depends on your endpoint
+**Azure OpenAI:**
+- `AZURE_OPENAI_ENDPOINT` - Your Azure OpenAI resource endpoint
+- `AZURE_OPENAI_API_KEY` - Azure key
+- `AZURE_OPENAI_DEPLOYMENT_NAME` - Deployment name (used instead of a model ID)
+- `AZURE_OPENAI_MODEL_ID` - Optional, if your deployment exposes it
+
+**Per-agent overrides (optional):**
+- `TEMPLATE_LLM_PROVIDER`, `TEMPLATE_CHAT_MODEL_ID`, `TEMPLATE_AZURE_DEPLOYMENT_NAME`
+- `WRITER_LLM_PROVIDER`, `WRITER_CHAT_MODEL_ID`, `WRITER_AZURE_DEPLOYMENT_NAME`
+- `REVIEWER_LLM_PROVIDER`, `REVIEWER_CHAT_MODEL_ID`, `REVIEWER_AZURE_DEPLOYMENT_NAME`
+- `PRODUCER_LLM_PROVIDER`, `PRODUCER_CHAT_MODEL_ID`, `PRODUCER_AZURE_DEPLOYMENT_NAME`
 
 **Application Settings:**
 - `APP_DEBUG` - Enable debug mode (default: false)
@@ -175,30 +185,19 @@ The application looks for `.env` files in this order:
 
 ```
 suno-prompter/
-├── app.py                           # Main Streamlit application
-├── config.py                        # Configuration management
+├── app.py                           # Wrapper to run packaged Streamlit app
+├── src/
+│   └── suno_prompter/
+│       ├── app.py                   # Main Streamlit application
+│       ├── config.py                # Configuration management
+│       ├── agents/                  # Agent definitions (OpenAI/Azure support)
+│       ├── workflows/               # Orchestrates template → writer → reviewer loop
+│       ├── utils/                   # Logging, ideas helper, etc.
+│       └── data/                    # starter_ideas.txt
+├── devui/agents.py                  # DevUI launcher for debugging agents
 ├── requirements.txt                 # Python dependencies
 ├── .env.example                     # Example environment variables
-├── README.md                        # This file
-├── agents/
-│   ├── __init__.py
-│   ├── lyric_template_agent.py      # Generates lyric blueprints
-│   ├── lyric_writer_agent.py        # Generates lyrics from template + idea
-│   └── lyric_reviewer_agent.py      # Reviews lyrics for quality
-├── workflows/
-│   ├── __init__.py
-│   └── lyric_workflow.py            # Orchestrates template → writer → reviewer loop
-├── utils/
-│   ├── __init__.py
-│   ├── logging.py                   # Logging utilities
-│   └── ideas.py                     # Starter idea selection
-├── data/
-│   └── starter_ideas.txt            # 10 song idea prompts
-└── openspec/
-    ├── project.md                   # Project context and conventions
-    └── changes/
-        ├── archive/                 # Archived proposals
-        └── generate-and-review-lyrics/  # Current proposal
+└── openspec/                        # Project context and change specs
 ```
 
 ## Development

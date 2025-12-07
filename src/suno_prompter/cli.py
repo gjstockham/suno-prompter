@@ -29,16 +29,19 @@ def load_environment():
         load_dotenv(home_env)
         return
 
-    # No .env file found, check if required vars are already set
-    if not os.getenv("OPENAI_CHAT_MODEL_ID"):
-        print("\nWarning: No .env file found and OPENAI_CHAT_MODEL_ID not set.")
+    # No .env file found, check if likely misconfigured
+    has_openai = os.getenv("OPENAI_CHAT_MODEL_ID")
+    has_azure = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+
+    if not (has_openai or has_azure):
+        print("\nWarning: No .env file found and no LLM configuration detected.")
         print("Please create a .env file in one of these locations:")
         print(f"  - {cwd_env}")
         print(f"  - {home_env}")
-        print("\nRequired environment variables:")
-        print("  - OPENAI_CHAT_MODEL_ID (e.g., 'gpt-4', 'llama3')")
-        print("  - OPENAI_API_KEY (for OpenAI API)")
-        print("  - OPENAI_BASE_URL (optional, for custom endpoints)")
+        print("\nMinimum environment variables:")
+        print("  - LLM_PROVIDER=openai|azure")
+        print("  - For OpenAI: OPENAI_CHAT_MODEL_ID plus OPENAI_API_KEY")
+        print("  - For Azure: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT_NAME")
         print()
 
 

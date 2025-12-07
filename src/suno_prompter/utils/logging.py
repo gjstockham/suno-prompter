@@ -1,7 +1,7 @@
 """Logging utilities for the Suno Prompter application."""
 
 import logging
-from config import config
+from ..config import config
 
 # Configure logging
 log_level = getattr(logging, config.LOG_LEVEL.upper(), logging.INFO)

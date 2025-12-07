@@ -1,11 +1,13 @@
 """Main Streamlit application for the Suno Prompter."""
 
+import json
 import streamlit as st
-from config import config
-from utils.logging import get_logger
-from utils.ideas import pick_random_idea
-from workflows import LyricWorkflow
-from workflows.lyric_workflow import WorkflowInputs, WorkflowStatus
+import streamlit.components.v1 as components
+from .config import config
+from .utils.logging import get_logger
+from .utils.ideas import pick_random_idea
+from .workflows import LyricWorkflow
+from .workflows.lyric_workflow import WorkflowInputs, WorkflowStatus
 
 logger = get_logger(__name__)
 
@@ -28,6 +30,7 @@ def initialize_session_state():
                 "artists": "",
                 "songs": "",
                 "guidance": "",
+                "lyrics": "",
                 "idea": "",
                 "producer_guidance": "",
             },
@@ -47,6 +50,24 @@ def initialize_session_state():
         st.session_state.workflow_instance = None
 
 
+def render_copy_button(label: str, text: str, key: str):
+    """Render a client-side copy-to-clipboard button with inline feedback."""
+    if not text:
+        st.write("_Nothing to copy yet._")
+        return
+
+    safe_text = json.dumps(text)
+    components.html(
+        f"""
+        <div style="margin: 0.5rem 0;">
+            <button style="padding: 0.4rem 0.8rem; border-radius: 0.4rem; border: 1px solid #e0e0e0; cursor: pointer; background: #f7f7f7;" onclick="navigator.clipboard.writeText({safe_text}); const el = document.getElementById('{key}-copied'); if (el) {{ el.style.display='inline'; el.innerText='Copied!'; setTimeout(()=>{{el.style.display='none';}}, 1800); }}">{label}</button>
+            <span id="{key}-copied" style="display:none; margin-left: 0.5rem; color: #10a37f; font-weight: 600;">Copied!</span>
+        </div>
+        """,
+        height=42,
+    )
+
+
 def validate_configuration():
     """Validate that the application configuration is correct."""
     if not config.validate():
@@ -63,10 +84,15 @@ The application requires LLM configuration.
 2. Add your LLM configuration (see .env.example)
 3. Restart the application
 
+**Default provider (one of: openai, azure):**
+```
+LLM_PROVIDER=openai
+```
+
 **For OpenAI API:**
 ```
 OPENAI_API_KEY=your-key-here
-OPENAI_CHAT_MODEL_ID=gpt-4
+OPENAI_CHAT_MODEL_ID=gpt-4o
 ```
 
 **For custom endpoints (Ollama, LM Studio, etc.):**
@@ -74,6 +100,19 @@ OPENAI_CHAT_MODEL_ID=gpt-4
 OPENAI_BASE_URL=http://localhost:11434/v1
 OPENAI_CHAT_MODEL_ID=llama3
 ```
+
+**For Azure OpenAI (deployment-based):**
+```
+LLM_PROVIDER=azure
+AZURE_OPENAI_ENDPOINT=https://<your-resource>.openai.azure.com/
+AZURE_OPENAI_API_KEY=your-key-here
+AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment
+```
+
+**Per-agent overrides (optional):**
+- TEMPLATE_LLM_PROVIDER=azure
+- TEMPLATE_AZURE_DEPLOYMENT_NAME=another-deployment
+- WRITER_CHAT_MODEL_ID=gpt-4o-mini
         """
         st.error(error_message)
         st.stop()
@@ -152,6 +191,14 @@ def render_workflow_form():
         help="Enter specific songs to analyze",
     )
 
+    lyrics = st.text_area(
+        "Or paste full lyrics (optional, overrides recall)",
+        value=st.session_state.workflow["inputs"]["lyrics"],
+        placeholder="Paste lyrics here if you want the template built from exact text...",
+        help="If provided, the blueprint will analyze these lyrics directly instead of recalling them.",
+        height=140,
+    )
+
     guidance = st.text_area(
         "Other guidance",
         value=st.session_state.workflow["inputs"]["guidance"],
@@ -163,6 +210,7 @@ def render_workflow_form():
     # Update session state with current values
     st.session_state.workflow["inputs"]["artists"] = artists
     st.session_state.workflow["inputs"]["songs"] = songs
+    st.session_state.workflow["inputs"]["lyrics"] = lyrics
     st.session_state.workflow["inputs"]["guidance"] = guidance
 
     # Generate button
@@ -362,25 +410,25 @@ def render_suno_output():
     # Style Prompt
     st.markdown("**Style Prompt**")
     st.markdown("Copy this into Suno's style/genre input:")
-    st.code(suno_output.get("style_prompt", ""), language="text")
-    if st.button("📋 Copy Style Prompt", key="copy_style"):
-        st.toast("Style prompt copied to clipboard!")
+    style_prompt = suno_output.get("style_prompt", "")
+    st.code(style_prompt, language="text")
+    render_copy_button("📋 Copy Style Prompt", style_prompt, key="copy_style")
 
     st.markdown("---")
 
     # Formatted Lyrics
     st.markdown("**Formatted Lyric Sheet**")
     st.markdown("Copy this into Suno's lyrics input:")
-    st.code(suno_output.get("lyric_sheet", ""), language="text")
-    if st.button("📋 Copy Lyric Sheet", key="copy_lyrics"):
-        st.toast("Lyric sheet copied to clipboard!")
+    lyric_sheet = suno_output.get("lyric_sheet", "")
+    st.code(lyric_sheet, language="text")
+    render_copy_button("📋 Copy Lyric Sheet", lyric_sheet, key="copy_lyrics")
 
     st.success("✅ Your Suno outputs are ready! Copy them to Suno to generate your song.")
 
 
 def run_producer():
     """Execute the producer agent to generate Suno outputs."""
-    from workflows.lyric_workflow import WorkflowState, WorkflowOutputs
+    from .workflows.lyric_workflow import WorkflowState, WorkflowOutputs
 
     # Build current state from session
     current_state = WorkflowState()
@@ -388,6 +436,7 @@ def run_producer():
     current_state.inputs.artists = st.session_state.workflow["inputs"]["artists"]
     current_state.inputs.songs = st.session_state.workflow["inputs"]["songs"]
     current_state.inputs.guidance = st.session_state.workflow["inputs"]["guidance"]
+    current_state.inputs.lyrics = st.session_state.workflow["inputs"]["lyrics"]
     current_state.inputs.idea = st.session_state.workflow["inputs"]["idea"]
     current_state.inputs.producer_guidance = st.session_state.workflow["inputs"]["producer_guidance"]
     current_state.outputs.template = st.session_state.workflow["outputs"]["template"]
@@ -419,12 +468,13 @@ def run_workflow():
     inputs = WorkflowInputs(
         artists=st.session_state.workflow["inputs"]["artists"],
         songs=st.session_state.workflow["inputs"]["songs"],
+        lyrics=st.session_state.workflow["inputs"]["lyrics"],
         guidance=st.session_state.workflow["inputs"]["guidance"],
     )
 
     # Validate at least one input is provided
-    if not any([inputs.artists.strip(), inputs.songs.strip(), inputs.guidance.strip()]):
-        st.error("Please provide at least one of: Artist(s), Song(s), or guidance")
+    if not any([inputs.artists.strip(), inputs.songs.strip(), inputs.guidance.strip(), inputs.lyrics.strip()]):
+        st.error("Please provide at least one of: Artist(s), Song(s), lyrics, or guidance")
         return
 
     # Show progress
@@ -455,6 +505,7 @@ def run_workflow_with_idea():
     inputs = WorkflowInputs(
         artists=st.session_state.workflow["inputs"]["artists"],
         songs=st.session_state.workflow["inputs"]["songs"],
+        lyrics=st.session_state.workflow["inputs"]["lyrics"],
         guidance=st.session_state.workflow["inputs"]["guidance"],
         idea=st.session_state.workflow["inputs"]["idea"],
     )

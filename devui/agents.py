@@ -8,11 +8,15 @@ This exposes individual agents for debugging in the DevUI web interface.
 import sys
 from pathlib import Path
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Add src/ to path so we can import the packaged agents when running from repo root
+ROOT = Path(__file__).parent.parent
+SRC_PATH = ROOT / "src"
+if SRC_PATH.exists():
+    sys.path.insert(0, str(SRC_PATH))
 
 from agent_framework.devui import serve
-from agents import (
+from suno_prompter.agents import (
     create_lyric_template_agent,
     create_lyric_writer_agent,
     create_lyric_reviewer_agent,

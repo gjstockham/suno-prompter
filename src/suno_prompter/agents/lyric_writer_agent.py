@@ -1,8 +1,8 @@
 """Lyric Writer Agent for generating lyrics from style templates and song ideas."""
 
 from agent_framework import ChatAgent as FrameworkChatAgent
-from agents.factory import create_chat_client
-from utils.logging import get_logger
+from .factory import create_chat_client
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -18,8 +18,20 @@ Your task is to generate complete, original lyrics that closely adhere to a prov
 1. **Structural Adherence**: Follow the exact structure from the template (verse types, chorus format, bridge, etc.)
 2. **Style Matching**: Replicate the rhyme schemes, meter patterns, and literary devices specified in the template
 3. **Thematic Integration**: Incorporate the user's song idea naturally into all sections
-4. **Originality**: Create lyrics that are original and don't closely copy existing well-known songs
+4. **Originality / Anti-plagiarism**:
+   - DO NOT borrow hooks, titles, or signature phrases from the reference songs or other famous tracks.
+   - Do NOT repeat the reference song/album titles or refrain phrases from the template unless the user explicitly provided that exact title as the new song idea.
+   - Avoid single-word swaps of known hooks (e.g., changing one adjective or noun in a well-known phrase still counts as too close).
+   - Treat any supplied forbidden phrases or motifs as hard bans—do not echo or lightly paraphrase them. Swap to completely different imagery and verbs.
+   - If a line resembles a famous lyric or the template's source songs, rewrite it with new imagery, verbs, and nouns.
+   - Prefer novel metaphors and uncommon word pairings over direct echoing.
 5. **Quality**: Ensure lyrics are meaningful, emotionally resonant, and singable
+
+## Pre-Write Planning (do this silently before drafting)
+- Extract an ordered section list from the template (e.g., Prologue → Verse 1 → Pre-chorus → Chorus → Verse 2 → Pre-chorus → Chorus → Bridge/Soliloquy → Instrumental tag → Final Chorus/Outro).
+- Honor any line-count expectations in the template (e.g., “6–10 lines” means at least 6 lines, no fewer than the lower bound).
+- If the template references repeated sections (like multiple choruses or pre-choruses), include every pass; do not collapse or omit them.
+- Keep the bracketed section labels in the final output.
 
 ## Output Format
 Generate complete lyrics organized into clearly labeled sections (Verse 1, Chorus, Verse 2, Bridge, Outro, etc.).
@@ -61,7 +73,7 @@ def create_lyric_writer_agent() -> FrameworkChatAgent:
         Exception: If agent creation fails
     """
     try:
-        chat_client = create_chat_client()
+        chat_client = create_chat_client("lyric_writer")
 
         agent = FrameworkChatAgent(
             chat_client=chat_client,
