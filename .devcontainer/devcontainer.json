@@ -14,7 +14,18 @@
 		},
 		"ghcr.io/devcontainers/features/python:1": {
 			"installTools": true,
-			"version": "3.12"
+			"version": "latest"
+		},
+		"ghcr.io/kreemer/features/chrometesting:1": {
+			"version": "Stable"
+		},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"moby": true,
+			"azureDnsAutoDetection": true,
+			"installDockerBuildx": true,
+			"installDockerComposeSwitch": true,
+			"version": "latest",
+			"dockerDashComposeVersion": "v2"
 		}
 	},
 

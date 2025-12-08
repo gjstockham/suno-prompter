@@ -1,4 +1,1 @@
-streamlit>=1.32.0
-agent-framework
-python-dotenv>=1.0.0
-nest-asyncio>=1.5.0
+--requirement backend/requirements.txt
