@@ -4,7 +4,7 @@ A Flask REST API plus React/Vite frontend that orchestrates Microsoft Agent Fram
 
 ## Architecture
 
-- **backend/**: Flask API (`/api/generate-prompt`) backed by the agent workflow.
+- **backend/**: Flask API exposing the lyric workflow (template → lyrics → reviewer → producer) plus helper endpoints.
 - **frontend/**: React + Vite + TypeScript SPA that proxies `/api` calls to the backend.
 - **Container**: Multi-stage Dockerfile builds the frontend, bundles it with the API, and runs via Gunicorn.
 
@@ -37,7 +37,22 @@ npm install
 npm run dev  # serves on http://localhost:5173 and proxies /api to the backend
 ```
 
+### Quick local run (backend + frontend)
+1) Start backend in one shell:
+```bash
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+python backend/app.py
+```
+2) Start frontend in another shell:
+```bash
+cd frontend
+npm run dev
+```
+3) Visit http://localhost:5173 (frontend proxies API calls to the backend on port 5000).
+
 ## API
+
+Core workflow (single-call):
 
 `POST /api/generate-prompt`
 ```json
@@ -52,6 +67,12 @@ npm run dev  # serves on http://localhost:5173 and proxies /api to the backend
 }
 ```
 Responses include `status`, `error` (if any), `outputs.template`, `outputs.lyrics`, `outputs.feedback_history`, and optional `outputs.suno_output` (style_prompt, lyric_sheet).
+
+Stage-specific endpoints (used by the frontend wizard):
+- `POST /api/generate-template` — build a style template from references and/or pasted lyrics.
+- `POST /api/generate-lyrics` — generate lyrics from a template + idea/title (iterates writer/reviewer).
+- `POST /api/generate-production` — format finalized lyrics into Suno style prompt + lyric sheet.
+- `GET /api/shuffle-idea` — return a random starter idea.
 
 ## Production Build
 

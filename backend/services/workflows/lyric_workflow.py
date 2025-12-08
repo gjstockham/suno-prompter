@@ -266,6 +266,7 @@ class LyricWorkflow:
         """
         feedback_history = []
         current_lyrics = None
+        previous_lyrics = None
         satisfied = False
         iteration = 0
 
@@ -290,14 +291,16 @@ class LyricWorkflow:
                     last_feedback = {"revision_suggestions": "Rewrite with fresh imagery; avoid any repeated hooks/titles."}
                 else:
                     last_feedback = feedback_history[-1]["feedback"]
+                    previous_lyrics = feedback_history[-1]["lyrics"]
                 writer_prompt = (
                     "Style Template (analysis only; do NOT reuse exact titles/phrases):\n"
                     f"{template}\n\n"
                     f"Song Idea/Title: {idea}\n"
                     f"Forbidden titles/phrases to avoid entirely (do not paraphrase): {', '.join(forbidden_phrases) if forbidden_phrases else 'None explicitly provided; still avoid lifting hooks or album titles from the template.'}\n\n"
-                f"Revision Feedback:\n{last_feedback['revision_suggestions']}\n\n"
-                "Generate revised lyrics incorporating the feedback above without reusing any reference hooks."
-            )
+                    f"Previous draft:\n{previous_lyrics or 'N/A'}\n\n"
+                    f"Revision Feedback:\n{last_feedback['revision_suggestions']}\n\n"
+                    "Generate revised lyrics incorporating the feedback above without reusing any reference hooks."
+                )
 
             logger.debug(f"Writer prompt (len={len(writer_prompt)}): {writer_prompt[:600]}")
             current_lyrics = await self._run_agent_async(self.lyric_writer_agent, writer_prompt)
@@ -306,6 +309,7 @@ class LyricWorkflow:
             # Review lyrics
             reviewer_prompt = (
                 f"Style Template:\n{template}\n\n"
+                f"Song Idea/Title: {idea}\n\n"
                 f"Generated Lyrics:\n{current_lyrics}\n\n"
                 f"Forbidden titles/phrases that must NOT appear (if present, set satisfied=false and flag plagiarism): {', '.join(forbidden_phrases) if forbidden_phrases else 'Reference song/album titles and hooks implied by the template.'}\n\n"
                 "Provide feedback in JSON format."
@@ -331,6 +335,7 @@ class LyricWorkflow:
                 "lyrics": current_lyrics,
                 "feedback": feedback_dict
             })
+            previous_lyrics = current_lyrics
 
             satisfied = feedback_dict.get("satisfied", False)
             logger.info(f"Reviewer satisfied: {satisfied}")
